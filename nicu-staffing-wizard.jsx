@@ -1,0 +1,624 @@
+import React, { useState } from 'react';
+
+// Sample staff roster - this would eventually be editable/persistent
+const INITIAL_ROSTER = [
+  { id: 1, lastName: 'Hamathka', firstName: 'Zoey', phone: '78274', role: 'RN' },
+  { id: 2, lastName: 'Parker', firstName: 'Paz', phone: '75284', role: 'RN' },
+  { id: 3, lastName: 'Jones', firstName: 'A+B', phone: '78278', role: 'RN' },
+  { id: 4, lastName: 'Hollis', firstName: '', phone: '78229', role: 'RN' },
+  { id: 5, lastName: 'Buchanan', firstName: 'Hannah', phone: '78274', role: 'RN' },
+  { id: 6, lastName: 'Horace', firstName: 'Oreggia', phone: '78287', role: 'RN' },
+  { id: 7, lastName: 'Marcelin', firstName: 'Brooke', phone: '73571', role: 'RN' },
+  { id: 8, lastName: 'Lamothe', firstName: '', phone: '78287', role: 'RN' },
+  { id: 9, lastName: 'Paz', firstName: 'Taylor', phone: '75284', role: 'RN' },
+  { id: 10, lastName: 'Druhot', firstName: 'Trica', phone: '78283', role: 'RN' },
+  { id: 11, lastName: 'Gruner', firstName: '', phone: '72027', role: 'RN' },
+  { id: 12, lastName: 'Corry', firstName: 'Karla', phone: '73665', role: 'RN' },
+  { id: 13, lastName: 'Cassie', firstName: '', phone: '78270', role: 'RN' },
+  { id: 14, lastName: 'Madison', firstName: '', phone: '78287', role: 'RN' },
+  { id: 15, lastName: 'Cindy', firstName: '', phone: '78278', role: 'RN' },
+  { id: 16, lastName: 'Shelton', firstName: 'Mosley', phone: '75410', role: 'RN' },
+  { id: 17, lastName: 'Arwood', firstName: 'Laudel', phone: '80153', role: 'RN' },
+  { id: 18, lastName: 'Chatman', firstName: '', phone: '6444', role: 'RN' },
+  { id: 19, lastName: 'Asuman', firstName: '', phone: 'A3029', role: 'RN' },
+  { id: 20, lastName: 'Smith', firstName: '', phone: '1804', role: 'RN' },
+  { id: 21, lastName: 'Lusung', firstName: '', phone: '6727', role: 'RN' },
+  { id: 22, lastName: 'Young', firstName: '', phone: '7879', role: 'RN' },
+  { id: 23, lastName: 'Ford', firstName: '', phone: '5896', role: 'RN' },
+  { id: 24, lastName: 'Powell', firstName: '', phone: '3777', role: 'RN' },
+  { id: 25, lastName: 'Azor', firstName: 'Nola', phone: '0759', role: 'RN' },
+  { id: 26, lastName: 'Piercy', firstName: '', phone: '6362', role: 'RN' },
+  { id: 27, lastName: 'Hulsey', firstName: '', phone: '6192', role: 'RN' },
+  { id: 28, lastName: 'OConnor', firstName: 'Meredith', phone: '1633', role: 'RN' },
+  { id: 29, lastName: 'Thompson', firstName: '', phone: '6443', role: 'RN' },
+  { id: 30, lastName: 'Dye', firstName: '', phone: '4899', role: 'RN' },
+  { id: 31, lastName: 'Clemans', firstName: 'Samantha', phone: '73676', role: 'RN' },
+  { id: 32, lastName: 'Kelsey', firstName: '', phone: '78277', role: 'RN' },
+  { id: 33, lastName: 'Rachel', firstName: '', phone: '78243', role: 'RN' },
+  { id: 34, lastName: 'Lise', firstName: '', phone: '79961', role: 'RN' },
+  { id: 35, lastName: 'Jerica', firstName: '', phone: '75289', role: 'RN' },
+  { id: 36, lastName: 'Catrina', firstName: '', phone: '78288', role: 'RN' },
+  { id: 37, lastName: 'MedinaPerez', firstName: '', phone: '29038', role: 'RN' },
+  { id: 38, lastName: 'Anna', firstName: '', phone: '78268', role: 'RN' },
+];
+
+const ROOMS = [
+  { id: 'room1', name: 'Room 1', ext: '21124' },
+  { id: 'room2', name: 'Room 2', ext: '21124' },
+  { id: 'room3', name: 'Room 3', ext: '21128' },
+  { id: 'room4', name: 'Room 4', ext: '21125' },
+  { id: 'room5', name: 'Room 5', ext: '21125' },
+  { id: 'room6', name: 'Room 6', ext: '21126' },
+  { id: 'room7', name: 'Room 7', ext: '21126' },
+  { id: 'room8', name: 'Room 8', ext: '21126' },
+  { id: 'intermediate1', name: 'Intermediate', ext: '21130' },
+  { id: 'intermediate2', name: 'Intermediate', ext: '21130' },
+  { id: 'intermediate3', name: 'Intermediate', ext: '21129' },
+  { id: 'nest', name: 'Nest', ext: '36036' },
+  { id: 'loft', name: 'Loft', ext: '36036' },
+  { id: 'specialcare5', name: 'Special Care 5', ext: '38558' },
+  { id: 'procedure', name: 'Procedure Room', ext: '' },
+];
+
+const STEPS = [
+  'Shift Info',
+  'Who\'s Working',
+  'Key Roles',
+  'Room Assignments',
+  'Special Notes',
+  'Generate'
+];
+
+export default function NICUStaffingWizard() {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [roster] = useState(INITIAL_ROSTER);
+  
+  // Shift info
+  const [shiftDate, setShiftDate] = useState(new Date().toISOString().split('T')[0]);
+  const [shiftTime, setShiftTime] = useState('7P-7A');
+  const [census, setCensus] = useState('');
+  
+  // Staff working tonight
+  const [workingStaff, setWorkingStaff] = useState([]);
+  
+  // Key roles
+  const [charge, setCharge] = useState(null);
+  const [resource, setResource] = useState(null);
+  const [ladRN, setLadRN] = useState(null);
+  const [nicuRT, setNicuRT] = useState('');
+  const [nicuRTPhone, setNicuRTPhone] = useState('76695');
+  const [md, setMD] = useState('');
+  const [mdPhone, setMDPhone] = useState('');
+  
+  // Room assignments - map of roomId to array of staff ids
+  const [roomAssignments, setRoomAssignments] = useState({});
+  
+  // Special notes
+  const [isolationPatients, setIsolationPatients] = useState('');
+  const [medicalUpdates, setMedicalUpdates] = useState('');
+  const [sickFlexed, setSickFlexed] = useState('');
+  const [nameAlert, setNameAlert] = useState('');
+  const [roomingIn, setRoomingIn] = useState('');
+  
+  // Current room index for assignment step
+  const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
+
+  const toggleStaffWorking = (staffId) => {
+    setWorkingStaff(prev => 
+      prev.includes(staffId) 
+        ? prev.filter(id => id !== staffId)
+        : [...prev, staffId]
+    );
+  };
+
+  const getStaffById = (id) => roster.find(s => s.id === id);
+  
+  const getAvailableStaff = () => {
+    const assignedStaff = Object.values(roomAssignments).flat();
+    return workingStaff.filter(id => !assignedStaff.includes(id));
+  };
+
+  const assignToRoom = (roomId, staffId) => {
+    setRoomAssignments(prev => ({
+      ...prev,
+      [roomId]: [...(prev[roomId] || []), staffId]
+    }));
+  };
+
+  const removeFromRoom = (roomId, staffId) => {
+    setRoomAssignments(prev => ({
+      ...prev,
+      [roomId]: (prev[roomId] || []).filter(id => id !== staffId)
+    }));
+  };
+
+  const formatStaffName = (staff) => {
+    if (!staff) return '';
+    return staff.firstName 
+      ? `${staff.lastName}, ${staff.firstName}`
+      : staff.lastName;
+  };
+
+  const formatStaffForSheet = (staff) => {
+    if (!staff) return '';
+    const name = staff.firstName 
+      ? `${staff.lastName}${staff.phone} ${staff.firstName}`
+      : `${staff.lastName}${staff.phone}`;
+    return name;
+  };
+
+  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
+  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
+
+  const renderStepIndicator = () => (
+    <div className="flex justify-between mb-8">
+      {STEPS.map((step, index) => (
+        <div 
+          key={step}
+          className={`flex flex-col items-center ${index <= currentStep ? 'text-blue-600' : 'text-gray-400'}`}
+        >
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mb-1
+            ${index < currentStep ? 'bg-blue-600 text-white' : 
+              index === currentStep ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+            {index < currentStep ? '✓' : index + 1}
+          </div>
+          <span className="text-xs text-center hidden sm:block">{step}</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderShiftInfo = () => (
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold mb-4">Shift Information</h2>
+      
+      <div>
+        <label className="block text-sm font-medium mb-1">Date</label>
+        <input 
+          type="date" 
+          value={shiftDate}
+          onChange={(e) => setShiftDate(e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium mb-1">Shift</label>
+        <select 
+          value={shiftTime}
+          onChange={(e) => setShiftTime(e.target.value)}
+          className="w-full p-2 border rounded"
+        >
+          <option value="7P-7A">7P - 7A (Night)</option>
+          <option value="7A-7P">7A - 7P (Day)</option>
+        </select>
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium mb-1">Census</label>
+        <input 
+          type="number" 
+          value={census}
+          onChange={(e) => setCensus(e.target.value)}
+          placeholder="Number of patients"
+          className="w-full p-2 border rounded"
+        />
+      </div>
+    </div>
+  );
+
+  const renderWorkingStaff = () => (
+    <div>
+      <h2 className="text-xl font-bold mb-4">Who's Working Tonight?</h2>
+      <p className="text-sm text-gray-600 mb-4">Select all staff on shift</p>
+      
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+        {roster.map(staff => (
+          <button
+            key={staff.id}
+            onClick={() => toggleStaffWorking(staff.id)}
+            className={`p-2 text-left text-sm rounded border transition-colors
+              ${workingStaff.includes(staff.id) 
+                ? 'bg-blue-100 border-blue-500 text-blue-800' 
+                : 'bg-white border-gray-300 hover:border-blue-300'}`}
+          >
+            {formatStaffName(staff)}
+          </button>
+        ))}
+      </div>
+      
+      <p className="mt-4 text-sm text-gray-600">
+        {workingStaff.length} staff selected
+      </p>
+    </div>
+  );
+
+  const renderKeyRoles = () => (
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold mb-4">Key Roles</h2>
+      
+      <div>
+        <label className="block text-sm font-medium mb-1">Charge Nurse</label>
+        <select 
+          value={charge || ''}
+          onChange={(e) => setCharge(e.target.value ? parseInt(e.target.value) : null)}
+          className="w-full p-2 border rounded"
+        >
+          <option value="">Select charge nurse...</option>
+          {workingStaff.map(id => {
+            const staff = getStaffById(id);
+            return <option key={id} value={id}>{formatStaffName(staff)}</option>;
+          })}
+        </select>
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium mb-1">Resource Nurse</label>
+        <select 
+          value={resource || ''}
+          onChange={(e) => setResource(e.target.value ? parseInt(e.target.value) : null)}
+          className="w-full p-2 border rounded"
+        >
+          <option value="">Select resource nurse...</option>
+          {workingStaff.map(id => {
+            const staff = getStaffById(id);
+            return <option key={id} value={id}>{formatStaffName(staff)}</option>;
+          })}
+        </select>
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium mb-1">L&D RN</label>
+        <select 
+          value={ladRN || ''}
+          onChange={(e) => setLadRN(e.target.value ? parseInt(e.target.value) : null)}
+          className="w-full p-2 border rounded"
+        >
+          <option value="">Select L&D RN...</option>
+          {workingStaff.map(id => {
+            const staff = getStaffById(id);
+            return <option key={id} value={id}>{formatStaffName(staff)}</option>;
+          })}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">NICU RT</label>
+          <input 
+            type="text"
+            value={nicuRT}
+            onChange={(e) => setNicuRT(e.target.value)}
+            placeholder="RT name"
+            className="w-full p-2 border rounded"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">RT Phone</label>
+          <input 
+            type="text"
+            value={nicuRTPhone}
+            onChange={(e) => setNicuRTPhone(e.target.value)}
+            className="w-full p-2 border rounded"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">MD</label>
+          <input 
+            type="text"
+            value={md}
+            onChange={(e) => setMD(e.target.value)}
+            placeholder="MD name"
+            className="w-full p-2 border rounded"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">MD Phone</label>
+          <input 
+            type="text"
+            value={mdPhone}
+            onChange={(e) => setMDPhone(e.target.value)}
+            className="w-full p-2 border rounded"
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderRoomAssignments = () => {
+    const currentRoom = ROOMS[currentRoomIndex];
+    const assignedToThisRoom = roomAssignments[currentRoom.id] || [];
+    const availableStaff = getAvailableStaff();
+    
+    return (
+      <div>
+        <h2 className="text-xl font-bold mb-2">Room Assignments</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Room {currentRoomIndex + 1} of {ROOMS.length}
+        </p>
+        
+        <div className="bg-blue-50 p-4 rounded-lg mb-4">
+          <h3 className="font-bold text-lg">{currentRoom.name}</h3>
+          {currentRoom.ext && <p className="text-sm text-gray-600">Ext: {currentRoom.ext}</p>}
+        </div>
+
+        <div className="mb-4">
+          <p className="text-sm font-medium mb-2">Assigned to this room:</p>
+          <div className="flex flex-wrap gap-2 min-h-12 p-2 bg-gray-50 rounded">
+            {assignedToThisRoom.length === 0 ? (
+              <span className="text-gray-400 text-sm">No one assigned yet</span>
+            ) : (
+              assignedToThisRoom.map(id => {
+                const staff = getStaffById(id);
+                return (
+                  <span 
+                    key={id}
+                    onClick={() => removeFromRoom(currentRoom.id, id)}
+                    className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm cursor-pointer hover:bg-red-100 hover:text-red-800"
+                  >
+                    {formatStaffName(staff)} ✕
+                  </span>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-medium mb-2">Available staff (click to assign):</p>
+          <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+            {availableStaff.map(id => {
+              const staff = getStaffById(id);
+              return (
+                <button
+                  key={id}
+                  onClick={() => assignToRoom(currentRoom.id, id)}
+                  className="p-2 text-left text-sm rounded border bg-white hover:bg-blue-50"
+                >
+                  {formatStaffName(staff)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex justify-between mt-6">
+          <button
+            onClick={() => setCurrentRoomIndex(prev => Math.max(0, prev - 1))}
+            disabled={currentRoomIndex === 0}
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+          >
+            ← Previous Room
+          </button>
+          
+          {currentRoomIndex < ROOMS.length - 1 ? (
+            <button
+              onClick={() => setCurrentRoomIndex(prev => prev + 1)}
+              className="px-4 py-2 bg-blue-600 text-white rounded"
+            >
+              Next Room →
+            </button>
+          ) : (
+            <button
+              onClick={nextStep}
+              className="px-4 py-2 bg-green-600 text-white rounded"
+            >
+              Done with Rooms ✓
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderSpecialNotes = () => (
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold mb-4">Special Notes</h2>
+      
+      <div>
+        <label className="block text-sm font-medium mb-1">Isolation Patients</label>
+        <textarea
+          value={isolationPatients}
+          onChange={(e) => setIsolationPatients(e.target.value)}
+          placeholder="List isolation patients..."
+          className="w-full p-2 border rounded h-20"
+        />
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium mb-1">Medical Updates / Potential Admissions</label>
+        <textarea
+          value={medicalUpdates}
+          onChange={(e) => setMedicalUpdates(e.target.value)}
+          placeholder="Any updates or expected admissions..."
+          className="w-full p-2 border rounded h-20"
+        />
+      </div>
+      
+      <div>
+        <label className="block text-sm font-medium mb-1">Staff Sick / Flexed Off</label>
+        <textarea
+          value={sickFlexed}
+          onChange={(e) => setSickFlexed(e.target.value)}
+          placeholder="List staff who called out or were flexed..."
+          className="w-full p-2 border rounded h-20"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Name Alert</label>
+        <textarea
+          value={nameAlert}
+          onChange={(e) => setNameAlert(e.target.value)}
+          placeholder="Any name alerts..."
+          className="w-full p-2 border rounded h-16"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Rooming In</label>
+        <textarea
+          value={roomingIn}
+          onChange={(e) => setRoomingIn(e.target.value)}
+          placeholder="Parents rooming in..."
+          className="w-full p-2 border rounded h-16"
+        />
+      </div>
+    </div>
+  );
+
+  const renderGeneratedSheet = () => {
+    const formatDate = (dateStr) => {
+      const d = new Date(dateStr);
+      return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear().toString().slice(2)}`;
+    };
+
+    const chargeStaff = getStaffById(charge);
+    const ladRNStaff = getStaffById(ladRN);
+    const resourceStaff = getStaffById(resource);
+
+    return (
+      <div>
+        <h2 className="text-xl font-bold mb-4">Generated Staffing Sheet</h2>
+        
+        <div className="bg-white border-2 border-gray-300 p-4 text-sm font-mono overflow-x-auto">
+          {/* Header */}
+          <div className="text-center font-bold mb-4">
+            <p>NICU STAFFING SHEET: {formatDate(shiftDate)} SHIFT: {shiftTime} CENSUS: {census} CHARGE: {chargeStaff ? formatStaffName(chargeStaff).toUpperCase() : ''} ({chargeStaff?.phone || ''})</p>
+            <p>L&D RN: {ladRNStaff ? formatStaffName(ladRNStaff).toUpperCase() : ''} ({ladRNStaff?.phone || ''}) NICU RT: {nicuRTPhone} L&D RT: 76696 MD: {md} ({mdPhone})</p>
+          </div>
+
+          {/* Room Grid */}
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {ROOMS.slice(0, 9).map(room => {
+              const assigned = roomAssignments[room.id] || [];
+              return (
+                <div key={room.id} className="border p-2">
+                  <div className="font-bold text-xs">{room.name} ext. {room.ext}</div>
+                  {assigned.map(id => {
+                    const staff = getStaffById(id);
+                    return <div key={id}>{formatStaffForSheet(staff)}</div>;
+                  })}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Intermediate and other areas */}
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {ROOMS.slice(9).map(room => {
+              const assigned = roomAssignments[room.id] || [];
+              return (
+                <div key={room.id} className="border p-2">
+                  <div className="font-bold text-xs">{room.name} {room.ext && `ext. ${room.ext}`}</div>
+                  {assigned.map(id => {
+                    const staff = getStaffById(id);
+                    return <div key={id}>{formatStaffForSheet(staff)}</div>;
+                  })}
+                </div>
+              );
+            })}
+            
+            <div className="border p-2">
+              <div className="font-bold text-xs">RESOURCE:</div>
+              {resourceStaff && <div>{formatStaffForSheet(resourceStaff)}</div>}
+            </div>
+          </div>
+
+          {/* Footer sections */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="border p-2">
+              <div className="font-bold text-xs">NAME ALERT:</div>
+              <div>{nameAlert}</div>
+            </div>
+            <div className="border p-2">
+              <div className="font-bold text-xs">ROOMING IN:</div>
+              <div>{roomingIn}</div>
+            </div>
+          </div>
+
+          {isolationPatients && (
+            <div className="border p-2 mb-2">
+              <div className="font-bold text-xs">ISOLATION:</div>
+              <div>{isolationPatients}</div>
+            </div>
+          )}
+
+          {sickFlexed && (
+            <div className="border p-2 mb-2">
+              <div className="font-bold text-xs">SICK/FLEXED:</div>
+              <div>{sickFlexed}</div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 flex gap-2">
+          <button 
+            onClick={() => window.print()}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            Print Sheet
+          </button>
+          <button
+            onClick={() => {
+              // Copy to clipboard logic would go here
+              const text = document.querySelector('.font-mono').innerText;
+              navigator.clipboard.writeText(text);
+            }}
+            className="px-4 py-2 bg-gray-200 rounded"
+          >
+            Copy to Clipboard
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderCurrentStep = () => {
+    switch(currentStep) {
+      case 0: return renderShiftInfo();
+      case 1: return renderWorkingStaff();
+      case 2: return renderKeyRoles();
+      case 3: return renderRoomAssignments();
+      case 4: return renderSpecialNotes();
+      case 5: return renderGeneratedSheet();
+      default: return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-4">
+      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 className="text-2xl font-bold text-center mb-6">NICU Staffing Sheet</h1>
+        
+        {renderStepIndicator()}
+        
+        <div className="mb-8">
+          {renderCurrentStep()}
+        </div>
+        
+        {/* Navigation - don't show for room assignments (has its own) or final step */}
+        {currentStep !== 3 && currentStep !== 5 && (
+          <div className="flex justify-between">
+            <button
+              onClick={prevStep}
+              disabled={currentStep === 0}
+              className="px-6 py-2 bg-gray-200 rounded disabled:opacity-50"
+            >
+              ← Back
+            </button>
+            <button
+              onClick={nextStep}
+              className="px-6 py-2 bg-blue-600 text-white rounded"
+            >
+              Next →
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

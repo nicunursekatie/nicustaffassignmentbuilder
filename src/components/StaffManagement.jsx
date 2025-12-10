@@ -15,7 +15,8 @@ export default function StaffManagement() {
     firstName: '',
     phone: '',
     extension: '',
-    role: 'RN'
+    role: 'RN',
+    shift: ''
   });
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export default function StaffManagement() {
       } else {
         await addStaff(formData);
       }
-      setFormData({ lastName: '', firstName: '', phone: '', extension: '', role: 'RN' });
+      setFormData({ lastName: '', firstName: '', phone: '', extension: '', role: 'RN', shift: '' });
       setEditingId(null);
       setShowAddForm(false);
       await loadStaff();
@@ -59,7 +60,8 @@ export default function StaffManagement() {
       firstName: staffMember.firstName || '',
       phone: staffMember.phone || '',
       extension: staffMember.extension || '',
-      role: staffMember.role || 'RN'
+      role: staffMember.role || 'RN',
+      shift: staffMember.shift || ''
     });
     setEditingId(staffMember.id);
     setShowAddForm(true);
@@ -160,7 +162,7 @@ export default function StaffManagement() {
               setShowAddForm(!showAddForm);
               setShowImport(false);
               setEditingId(null);
-              setFormData({ lastName: '', firstName: '', phone: '', extension: '', role: 'RN' });
+              setFormData({ lastName: '', firstName: '', phone: '', extension: '', role: 'RN', shift: '' });
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
@@ -176,10 +178,10 @@ export default function StaffManagement() {
             Paste staff data below. Supports multiple formats:
           </p>
           <ul className="text-sm text-gray-600 mb-4 list-disc list-inside space-y-1">
-            <li><strong>CSV:</strong> LastName,FirstName,Phone,Extension,Role</li>
-            <li><strong>Tab-separated:</strong> LastName	FirstName	Phone	Extension	Role</li>
-            <li><strong>Space-separated:</strong> LastName FirstName Phone Extension Role</li>
-            <li><strong>Minimal:</strong> LastName,Phone (other fields optional)</li>
+            <li><strong>CSV:</strong> LastName,FirstName,Phone,Extension,Role,Shift</li>
+            <li><strong>Tab-separated:</strong> LastName	FirstName	Phone	Extension	Role	Shift</li>
+            <li><strong>Space-separated:</strong> LastName FirstName Phone Extension Role Shift</li>
+            <li><strong>Minimal:</strong> LastName,Phone (other fields optional, Shift: Day/Night or blank)</li>
           </ul>
           <textarea
             value={importText}
@@ -276,6 +278,18 @@ Jones,A+B,78278,21126,RN`}
                 <option value="Other">Other</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Shift Designation</label>
+              <select
+                value={formData.shift}
+                onChange={(e) => setFormData({ ...formData, shift: e.target.value })}
+                className="w-full p-2 border rounded"
+              >
+                <option value="">None</option>
+                <option value="Day">Day</option>
+                <option value="Night">Night</option>
+              </select>
+            </div>
           </div>
           <div className="mt-4">
             <button
@@ -305,6 +319,9 @@ Jones,A+B,78278,21126,RN`}
                 Role
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Shift
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -312,7 +329,7 @@ Jones,A+B,78278,21126,RN`}
           <tbody className="bg-white divide-y divide-gray-200">
             {staff.length === 0 ? (
               <tr>
-                <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
                   No staff members found. Add your first staff member above.
                 </td>
               </tr>
@@ -330,6 +347,19 @@ Jones,A+B,78278,21126,RN`}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {member.role || 'RN'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {member.shift ? (
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        member.shift === 'Day' 
+                          ? 'bg-yellow-100 text-yellow-800' 
+                          : 'bg-indigo-100 text-indigo-800'
+                      }`}>
+                        {member.shift}
+                      </span>
+                    ) : (
+                      '-'
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button

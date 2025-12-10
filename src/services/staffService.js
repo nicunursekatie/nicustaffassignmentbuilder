@@ -41,6 +41,7 @@ export const getAllStaff = async () => {
  * @param {string} staffData.phone - Phone extension
  * @param {string} staffData.extension - Work extension number (optional)
  * @param {string} staffData.role - Role (default: 'RN')
+ * @param {string} staffData.shift - Shift designation: 'Day', 'Night', or '' (optional)
  * @returns {Promise<string>} Document ID of the new staff member
  */
 export const addStaff = async (staffData) => {
@@ -52,6 +53,7 @@ export const addStaff = async (staffData) => {
       phone: staffData.phone || '',
       extension: staffData.extension || '',
       role: staffData.role || 'RN',
+      shift: staffData.shift || '',
       createdAt: new Date().toISOString()
     });
     return docRef.id;
@@ -143,14 +145,15 @@ export const importStaffFromText = async (text) => {
 
       // Try to parse the line
       if (line.includes(',')) {
-        // CSV format: LastName,FirstName,Phone,Extension,Role
+        // CSV format: LastName,FirstName,Phone,Extension,Role,Shift
         const parts = line.split(',').map(p => p.trim());
         staffData = {
           lastName: parts[0] || '',
           firstName: parts[1] || '',
           phone: parts[2] || '',
           extension: parts[3] || '',
-          role: parts[4] || 'RN'
+          role: parts[4] || 'RN',
+          shift: parts[5] || ''
         };
       } else if (line.includes('\t')) {
         // Tab-separated format
@@ -160,10 +163,11 @@ export const importStaffFromText = async (text) => {
           firstName: parts[1] || '',
           phone: parts[2] || '',
           extension: parts[3] || '',
-          role: parts[4] || 'RN'
+          role: parts[4] || 'RN',
+          shift: parts[5] || ''
         };
       } else {
-        // Space-separated format: LastName FirstName Phone Extension Role
+        // Space-separated format: LastName FirstName Phone Extension Role Shift
         const parts = line.split(/\s+/).filter(p => p.length > 0);
         if (parts.length >= 2) {
           staffData = {
@@ -171,7 +175,8 @@ export const importStaffFromText = async (text) => {
             firstName: parts[1] || '',
             phone: parts[2] || '',
             extension: parts[3] || '',
-            role: parts[4] || 'RN'
+            role: parts[4] || 'RN',
+            shift: parts[5] || ''
           };
         } else {
           results.errors.push(`Line ${i + 1}: Invalid format - "${line}"`);
@@ -193,6 +198,7 @@ export const importStaffFromText = async (text) => {
         phone: staffData.phone || '',
         extension: staffData.extension || '',
         role: staffData.role || 'RN',
+        shift: staffData.shift || '',
         createdAt: new Date().toISOString()
       });
 
@@ -241,6 +247,7 @@ export const migrateInitialStaff = async (initialStaff) => {
         phone: staff.phone || '',
         extension: '', // Extension field for future use
         role: staff.role || 'RN',
+        shift: '', // Shift designation (can be set later)
         createdAt: new Date().toISOString()
       })
     );

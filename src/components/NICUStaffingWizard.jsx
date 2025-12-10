@@ -63,9 +63,9 @@ const ROOMS = [
 
 const STEPS = [
   'Shift Info',
+  'Baby Assignments',
   'Who\'s Working',
   'Key Roles',
-  'Baby Assignments',
   'Room Assignments',
   'Special Notes',
   'Generate'
@@ -236,15 +236,15 @@ export default function NICUStaffingWizard() {
   };
 
   const nextStep = () => {
-    // Reset room index when moving to baby assignments or room assignments
-    if (currentStep === 2 || currentStep === 3) {
+    // Reset room index when moving to baby assignments (step 1) or room assignments (step 4)
+    if (currentStep === 0 || currentStep === 3) {
       setCurrentRoomIndex(0);
     }
     setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
   };
   const prevStep = () => {
-    // Reset room index when moving to baby assignments or room assignments
-    if (currentStep === 4 || currentStep === 5) {
+    // Reset room index when moving to baby assignments (step 1) or room assignments (step 4)
+    if (currentStep === 2 || currentStep === 5) {
       setCurrentRoomIndex(0);
     }
     setCurrentStep(prev => Math.max(prev - 1, 0));
@@ -1017,9 +1017,9 @@ export default function NICUStaffingWizard() {
   const renderCurrentStep = () => {
     switch(currentStep) {
       case 0: return renderShiftInfo();
-      case 1: return renderWorkingStaff();
-      case 2: return renderKeyRoles();
-      case 3: return renderBabyAssignments();
+      case 1: return renderBabyAssignments();
+      case 2: return renderWorkingStaff();
+      case 3: return renderKeyRoles();
       case 4: return renderRoomAssignments();
       case 5: return renderSpecialNotes();
       case 6: return renderGeneratedSheet();
@@ -1038,8 +1038,8 @@ export default function NICUStaffingWizard() {
           {renderCurrentStep()}
         </div>
         
-        {/* Navigation - don't show for baby assignments, room assignments (has its own) or final step */}
-        {currentStep !== 3 && currentStep !== 4 && currentStep !== 6 && (
+        {/* Navigation - don't show for baby assignments (step 1), room assignments (step 4) (has its own) or final step (step 6) */}
+        {currentStep !== 1 && currentStep !== 4 && currentStep !== 6 && (
           <div className="flex justify-between">
             <button
               onClick={prevStep}

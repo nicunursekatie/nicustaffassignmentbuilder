@@ -360,17 +360,29 @@ export default function NICUStaffingWizard() {
                             ? 'bg-blue-100 border-blue-500 text-blue-800' 
                             : 'bg-white border-gray-300 hover:border-blue-300 hover:bg-blue-50'}`}
                       >
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2">
                           <span>{formatStaffName(staff)}</span>
-                          {staff.shift && (
-                            <span className={`ml-2 px-1.5 py-0.5 rounded text-xs font-medium ${
-                              staff.shift === 'Day' 
-                                ? 'bg-yellow-100 text-yellow-700' 
-                                : 'bg-indigo-100 text-indigo-700'
-                            }`}>
-                              {staff.shift}
-                            </span>
-                          )}
+                          <div className="flex gap-1">
+                            {staff.shift && (
+                              <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                                staff.shift === 'Day' 
+                                  ? 'bg-yellow-100 text-yellow-700' 
+                                  : 'bg-indigo-100 text-indigo-700'
+                              }`}>
+                                {staff.shift}
+                              </span>
+                            )}
+                            {staff.isPreceptee && (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                                Preceptee
+                              </span>
+                            )}
+                            {staff.isTraveler && (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">
+                                Traveler
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </button>
                     );

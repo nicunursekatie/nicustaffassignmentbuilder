@@ -18,7 +18,9 @@ export default function StaffManagement() {
     phone: '',
     extension: '',
     role: 'RN',
-    shift: ''
+    shift: '',
+    isPreceptee: false,
+    isTraveler: false
   });
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function StaffManagement() {
       } else {
         await addStaff(formData);
       }
-      setFormData({ lastName: '', firstName: '', phone: '', extension: '', role: 'RN', shift: '' });
+      setFormData({ lastName: '', firstName: '', phone: '', extension: '', role: 'RN', shift: '', isPreceptee: false, isTraveler: false });
       setEditingId(null);
       setShowAddForm(false);
       await loadStaff();
@@ -63,10 +65,20 @@ export default function StaffManagement() {
       phone: staffMember.phone || '',
       extension: staffMember.extension || '',
       role: staffMember.role || 'RN',
-      shift: staffMember.shift || ''
+      shift: staffMember.shift || '',
+      isPreceptee: staffMember.isPreceptee || false,
+      isTraveler: staffMember.isTraveler || false
     });
     setEditingId(staffMember.id);
     setShowAddForm(true);
+    setShowImport(false);
+    // Scroll to form
+    setTimeout(() => {
+      const formElement = document.querySelector('.bg-gray-50.p-4.rounded-lg');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   const handleDelete = async (staffId, staffName) => {
@@ -182,7 +194,7 @@ export default function StaffManagement() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Staff Management</h1>
         <div className="flex gap-2">
@@ -209,7 +221,7 @@ export default function StaffManagement() {
               setShowAddForm(!showAddForm);
               setShowImport(false);
               setEditingId(null);
-              setFormData({ lastName: '', firstName: '', phone: '', extension: '', role: 'RN', shift: '' });
+              setFormData({ lastName: '', firstName: '', phone: '', extension: '', role: 'RN', shift: '', isPreceptee: false, isTraveler: false });
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
@@ -270,10 +282,10 @@ export default function StaffManagement() {
             Paste staff data below. Supports multiple formats:
           </p>
           <ul className="text-sm text-gray-600 mb-4 list-disc list-inside space-y-1">
-            <li><strong>CSV:</strong> LastName,FirstName,Phone,Extension,Role,Shift</li>
-            <li><strong>Tab-separated:</strong> LastName	FirstName	Phone	Extension	Role	Shift</li>
-            <li><strong>Space-separated:</strong> LastName FirstName Phone Extension Role Shift</li>
-            <li><strong>Minimal:</strong> LastName,Phone (other fields optional, Shift: Day/Night or blank)</li>
+            <li><strong>CSV:</strong> LastName,FirstName,Phone,Extension,Role,Shift,IsPreceptee,IsTraveler</li>
+            <li><strong>Tab-separated:</strong> LastName	FirstName	Phone	Extension	Role	Shift	IsPreceptee	IsTraveler</li>
+            <li><strong>Space-separated:</strong> LastName FirstName Phone Extension Role Shift IsPreceptee IsTraveler</li>
+            <li><strong>Minimal:</strong> LastName,Phone (other fields optional, Shift: Day/Night or blank, IsPreceptee/IsTraveler: true/1/yes or false)</li>
           </ul>
           <textarea
             value={importText}
@@ -382,6 +394,28 @@ Jones,A+B,78278,21126,RN`}
                 <option value="Night">Night</option>
               </select>
             </div>
+            <div>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.isPreceptee}
+                  onChange={(e) => setFormData({ ...formData, isPreceptee: e.target.checked })}
+                  className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium">Preceptee</span>
+              </label>
+            </div>
+            <div>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.isTraveler}
+                  onChange={(e) => setFormData({ ...formData, isTraveler: e.target.checked })}
+                  className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium">Traveler</span>
+              </label>
+            </div>
           </div>
           <div className="mt-4">
             <button
@@ -394,7 +428,7 @@ Jones,A+B,78278,21126,RN`}
         </form>
       )}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -422,6 +456,12 @@ Jones,A+B,78278,21126,RN`}
                 Shift
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Preceptee
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Traveler
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -429,7 +469,7 @@ Jones,A+B,78278,21126,RN`}
           <tbody className="bg-white divide-y divide-gray-200">
             {staff.length === 0 ? (
               <tr>
-                <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                <td colSpan="9" className="px-6 py-4 text-center text-gray-500">
                   No staff members found. Add your first staff member above.
                 </td>
               </tr>
@@ -472,19 +512,39 @@ Jones,A+B,78278,21126,RN`}
                       '-'
                     )}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {member.isPreceptee ? (
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                        Preceptee
+                      </span>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {member.isTraveler ? (
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                        Traveler
+                      </span>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => handleEdit(member)}
-                      className="text-blue-600 hover:text-blue-900 mr-4"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(member.id, formatStaffName(member))}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(member)}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(member.id, formatStaffName(member))}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

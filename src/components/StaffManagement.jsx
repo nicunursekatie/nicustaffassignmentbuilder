@@ -349,6 +349,8 @@ export default function StaffManagement() {
                     <option value="NP">NP (Nurse Practitioner)</option>
                     <option value="Secretary">Secretary</option>
                     <option value="Unit Support Associate">Unit Support Associate</option>
+                    <option value="Assistant Nurse Manager">Assistant Nurse Manager</option>
+                    <option value="Manager">Manager</option>
                     <option value="Other">Other</option>
                   </select>
                 </div>
@@ -532,6 +534,8 @@ Jones,A+B,78278,21126,RN`}
                 <option value="NP">NP (Nurse Practitioner)</option>
                 <option value="Secretary">Secretary</option>
                 <option value="Unit Support Associate">Unit Support Associate</option>
+                <option value="Assistant Nurse Manager">Assistant Nurse Manager</option>
+                <option value="Manager">Manager</option>
                 <option value="Other">Other</option>
               </select>
             </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllStaff, addStaff, updateStaff, deleteStaff, clearAllStaff, importStaffFromText, bulkUpdateShift } from '../services/staffService';
+import { getAllStaff, addStaff, updateStaff, deleteStaff, clearAllStaff, importStaffFromText, bulkUpdateShift, bulkUpdateStaff } from '../services/staffService';
 
 export default function StaffManagement() {
   const [staff, setStaff] = useState([]);
@@ -12,6 +12,14 @@ export default function StaffManagement() {
   const [isImporting, setIsImporting] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(new Set());
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [bulkEditData, setBulkEditData] = useState({
+    role: '',
+    shift: '',
+    isPreceptee: null,
+    isTraveler: null,
+    isChargeNurse: null
+  });
   const [formData, setFormData] = useState({
     lastName: '',
     firstName: '',
@@ -161,6 +169,53 @@ export default function StaffManagement() {
     }
   };
 
+  const handleBulkEdit = async () => {
+    if (selectedStaff.size === 0) {
+      alert('Please select at least one staff member.');
+      return;
+    }
+
+    // Build update object with only fields that have values
+    const updates = {};
+    if (bulkEditData.role) updates.role = bulkEditData.role;
+    if (bulkEditData.shift !== '') updates.shift = bulkEditData.shift;
+    if (bulkEditData.isPreceptee !== null) updates.isPreceptee = bulkEditData.isPreceptee;
+    if (bulkEditData.isTraveler !== null) updates.isTraveler = bulkEditData.isTraveler;
+    if (bulkEditData.isChargeNurse !== null) updates.isChargeNurse = bulkEditData.isChargeNurse;
+
+    if (Object.keys(updates).length === 0) {
+      alert('Please select at least one field to update.');
+      return;
+    }
+
+    const count = selectedStaff.size;
+    const fields = Object.keys(updates).join(', ');
+    if (!window.confirm(`Update ${fields} for ${count} selected staff member(s)?`)) {
+      return;
+    }
+
+    setIsBulkUpdating(true);
+    try {
+      await bulkUpdateStaff(Array.from(selectedStaff), updates);
+      setSelectedStaff(new Set());
+      setShowBulkEdit(false);
+      setBulkEditData({
+        role: '',
+        shift: '',
+        isPreceptee: null,
+        isTraveler: null,
+        isChargeNurse: null
+      });
+      await loadStaff();
+      alert(`Successfully updated ${count} staff member(s).`);
+    } catch (error) {
+      console.error('Error bulk updating staff:', error);
+      alert('Failed to update staff members.');
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
   const toggleStaffSelection = (staffId) => {
     setSelectedStaff(prev => {
       const newSet = new Set(prev);
@@ -232,39 +287,39 @@ export default function StaffManagement() {
         </div>
       </div>
 
-      {/* Bulk Shift Update Controls */}
+      {/* Bulk Edit Controls */}
       {staff.length > 0 && (
         <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg mb-6">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="font-bold text-lg mb-1">Bulk Shift Assignment</h3>
+              <h3 className="font-bold text-lg mb-1">Bulk Edit Staff</h3>
               <p className="text-sm text-gray-600">
                 {selectedStaff.size > 0 
                   ? `${selectedStaff.size} staff member(s) selected`
-                  : 'Select staff members below to bulk update their shift designation'}
+                  : 'Select staff members below to bulk edit their information'}
               </p>
             </div>
             <div className="flex gap-2">
+              <button
+                onClick={() => setShowBulkEdit(!showBulkEdit)}
+                disabled={selectedStaff.size === 0}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {showBulkEdit ? 'Cancel Bulk Edit' : 'Bulk Edit Selected'}
+              </button>
               <button
                 onClick={() => handleBulkShiftUpdate('Day')}
                 disabled={selectedStaff.size === 0 || isBulkUpdating}
                 className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isBulkUpdating ? 'Updating...' : `Set ${selectedStaff.size || 'Selected'} to Day`}
+                {isBulkUpdating ? 'Updating...' : `Quick: Set to Day`}
               </button>
               <button
                 onClick={() => handleBulkShiftUpdate('Night')}
                 disabled={selectedStaff.size === 0 || isBulkUpdating}
                 className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isBulkUpdating ? 'Updating...' : `Set ${selectedStaff.size || 'Selected'} to Night`}
-              </button>
-              <button
-                onClick={() => handleBulkShiftUpdate('')}
-                disabled={selectedStaff.size === 0 || isBulkUpdating}
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isBulkUpdating ? 'Updating...' : `Clear ${selectedStaff.size || 'Selected'} Shift`}
+                {isBulkUpdating ? 'Updating...' : `Quick: Set to Night`}
               </button>
             </div>
           </div>
@@ -274,6 +329,97 @@ export default function StaffManagement() {
           >
             {selectedStaff.size === staff.length ? 'Deselect All' : 'Select All'}
           </button>
+
+          {/* Bulk Edit Form */}
+          {showBulkEdit && selectedStaff.size > 0 && (
+            <div className="mt-4 p-4 bg-white rounded-lg border border-purple-300">
+              <h4 className="font-bold mb-3">Bulk Edit {selectedStaff.size} Selected Staff Member(s)</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Role</label>
+                  <select
+                    value={bulkEditData.role}
+                    onChange={(e) => setBulkEditData({ ...bulkEditData, role: e.target.value })}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="">Don't change</option>
+                    <option value="RN">RN</option>
+                    <option value="RT">RT</option>
+                    <option value="MD">MD</option>
+                    <option value="NP">NP (Nurse Practitioner)</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Shift</label>
+                  <select
+                    value={bulkEditData.shift}
+                    onChange={(e) => setBulkEditData({ ...bulkEditData, shift: e.target.value === 'CLEAR' ? '' : e.target.value })}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="">Don't change</option>
+                    <option value="Day">Day</option>
+                    <option value="Night">Night</option>
+                    <option value="CLEAR">Clear (remove shift)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Preceptee</label>
+                  <select
+                    value={bulkEditData.isPreceptee === null ? '' : bulkEditData.isPreceptee ? 'true' : 'false'}
+                    onChange={(e) => setBulkEditData({ 
+                      ...bulkEditData, 
+                      isPreceptee: e.target.value === '' ? null : e.target.value === 'true' 
+                    })}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="">Don't change</option>
+                    <option value="true">Yes (Mark as Preceptee)</option>
+                    <option value="false">No (Remove Preceptee)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Traveler</label>
+                  <select
+                    value={bulkEditData.isTraveler === null ? '' : bulkEditData.isTraveler ? 'true' : 'false'}
+                    onChange={(e) => setBulkEditData({ 
+                      ...bulkEditData, 
+                      isTraveler: e.target.value === '' ? null : e.target.value === 'true' 
+                    })}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="">Don't change</option>
+                    <option value="true">Yes (Mark as Traveler)</option>
+                    <option value="false">No (Remove Traveler)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Charge Nurse</label>
+                  <select
+                    value={bulkEditData.isChargeNurse === null ? '' : bulkEditData.isChargeNurse ? 'true' : 'false'}
+                    onChange={(e) => setBulkEditData({ 
+                      ...bulkEditData, 
+                      isChargeNurse: e.target.value === '' ? null : e.target.value === 'true' 
+                    })}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="">Don't change</option>
+                    <option value="true">Yes (Mark as Charge Nurse)</option>
+                    <option value="false">No (Remove Charge Nurse)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={handleBulkEdit}
+                  disabled={isBulkUpdating}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isBulkUpdating ? 'Updating...' : 'Apply Bulk Edit'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -381,6 +527,7 @@ Jones,A+B,78278,21126,RN`}
                 <option value="RN">RN</option>
                 <option value="RT">RT</option>
                 <option value="MD">MD</option>
+                <option value="NP">NP (Nurse Practitioner)</option>
                 <option value="Other">Other</option>
               </select>
             </div>

@@ -13,6 +13,7 @@ export default function StaffManagement() {
   const [selectedStaff, setSelectedStaff] = useState(new Set());
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [isFixingNames, setIsFixingNames] = useState(false);
   const [bulkEditData, setBulkEditData] = useState({
     role: '',
     shift: '',
@@ -144,6 +145,105 @@ export default function StaffManagement() {
     }
   };
 
+  const handleFixNameNumberIssues = async () => {
+    // Find all staff members where firstName looks like a number and lastName contains a full name
+    const needsFix = staff.filter(member => {
+      const firstName = (member.firstName || '').trim();
+      const lastName = (member.lastName || '').trim();
+      
+      // Check if firstName is numeric (phone/extension number)
+      const isNumeric = /^\d+$/.test(firstName);
+      
+      // Check if lastName looks like it contains a full name (has comma or multiple words)
+      const hasFullName = lastName.includes(',') || lastName.split(/\s+/).length > 1;
+      
+      return isNumeric && hasFullName && lastName.length > firstName.length;
+    });
+
+    if (needsFix.length === 0) {
+      alert('No staff members found with name/number issues to fix.');
+      return;
+    }
+
+    if (!window.confirm(`Found ${needsFix.length} staff member(s) with name/number issues. Fix them automatically?`)) {
+      return;
+    }
+
+    setIsFixingNames(true);
+    try {
+      const updates = [];
+      
+      for (const member of needsFix) {
+        const firstName = (member.firstName || '').trim();
+        const lastName = (member.lastName || '').trim();
+        const number = firstName; // This is the phone/extension number
+        
+        // Parse lastName - could be "Last, First" or "Last First"
+        let newLastName = '';
+        let newFirstName = '';
+        
+        if (lastName.includes(',')) {
+          // Format: "Last, First" or "Last,First"
+          const parts = lastName.split(',').map(p => p.trim());
+          newLastName = parts[0] || '';
+          newFirstName = parts[1] || '';
+        } else {
+          // Format: "Last First" - split on spaces, last word is last name, rest is first name
+          const parts = lastName.split(/\s+/).filter(p => p.length > 0);
+          if (parts.length >= 2) {
+            newLastName = parts[parts.length - 1]; // Last word is last name
+            newFirstName = parts.slice(0, parts.length - 1).join(' '); // Everything else is first name
+          } else {
+            // Only one word, assume it's the last name
+            newLastName = lastName;
+            newFirstName = '';
+          }
+        }
+        
+        // Determine if the number should go to phone or extension
+        // If phone is empty, use phone; otherwise use extension
+        const updateData = {
+          lastName: newLastName,
+          firstName: newFirstName
+        };
+        
+        // Put the number in the appropriate field
+        if (!member.phone || member.phone.trim() === '') {
+          updateData.phone = number;
+        } else if (!member.extension || member.extension.trim() === '') {
+          updateData.extension = number;
+        } else {
+          // Both fields have values, put it in phone and keep extension as is
+          updateData.phone = number;
+        }
+        
+        updates.push({ id: member.id, data: updateData });
+      }
+
+      // Update all staff members in batches
+      const staffIds = updates.map(u => u.id);
+      const batchSize = 500;
+      
+      for (let i = 0; i < updates.length; i += batchSize) {
+        const batch = updates.slice(i, i + batchSize);
+        const batchIds = batch.map(u => u.id);
+        
+        // We need to update each one individually since they have different update data
+        for (const update of batch) {
+          await updateStaff(update.id, update.data);
+        }
+      }
+
+      alert(`Successfully fixed ${needsFix.length} staff member(s)!`);
+      await loadStaff();
+    } catch (error) {
+      console.error('Error fixing name/number issues:', error);
+      alert('Failed to fix name/number issues. Please try again.');
+    } finally {
+      setIsFixingNames(false);
+    }
+  };
+
   const handleBulkShiftUpdate = async (shift) => {
     if (selectedStaff.size === 0) {
       alert('Please select at least one staff member.');
@@ -256,12 +356,22 @@ export default function StaffManagement() {
         <h1 className="text-2xl font-bold">Staff Management</h1>
         <div className="flex gap-2">
           {staff.length > 0 && (
-            <button
-              onClick={handleClearAll}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-            >
-              Clear All Staff ({staff.length})
-            </button>
+            <>
+              <button
+                onClick={handleFixNameNumberIssues}
+                disabled={isFixingNames}
+                className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Fix entries where a number is in first name and full name is in last name"
+              >
+                {isFixingNames ? 'Fixing...' : 'Fix Name/Number Issues'}
+              </button>
+              <button
+                onClick={handleClearAll}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Clear All Staff ({staff.length})
+              </button>
+            </>
           )}
           <button
             onClick={() => {

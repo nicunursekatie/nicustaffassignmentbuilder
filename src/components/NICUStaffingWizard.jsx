@@ -65,6 +65,7 @@ const STEPS = [
   'Shift Info',
   'Who\'s Working',
   'Key Roles',
+  'Baby Assignments',
   'Room Assignments',
   'Special Notes',
   'Generate'
@@ -208,6 +209,17 @@ export default function NICUStaffingWizard() {
     }));
   };
 
+  const moveBabyToRoom = (fromRoomId, babyIndex, toRoomId) => {
+    const baby = roomBabies[fromRoomId]?.[babyIndex];
+    if (!baby) return;
+    
+    setRoomBabies(prev => ({
+      ...prev,
+      [fromRoomId]: (prev[fromRoomId] || []).filter((_, index) => index !== babyIndex),
+      [toRoomId]: [...(prev[toRoomId] || []), baby]
+    }));
+  };
+
   const formatStaffName = (staff) => {
     if (!staff) return '';
     return staff.firstName 
@@ -223,8 +235,20 @@ export default function NICUStaffingWizard() {
     return name;
   };
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
-  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
+  const nextStep = () => {
+    // Reset room index when moving to baby assignments or room assignments
+    if (currentStep === 2 || currentStep === 3) {
+      setCurrentRoomIndex(0);
+    }
+    setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
+  };
+  const prevStep = () => {
+    // Reset room index when moving to baby assignments or room assignments
+    if (currentStep === 4 || currentStep === 5) {
+      setCurrentRoomIndex(0);
+    }
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  };
 
   const renderStepIndicator = () => (
     <div className="flex justify-between mb-8">
@@ -585,17 +609,15 @@ export default function NICUStaffingWizard() {
     </div>
   );
 
-  const renderRoomAssignments = () => {
+  const renderBabyAssignments = () => {
     const currentRoom = ROOMS[currentRoomIndex];
-    const assignedToThisRoom = roomAssignments[currentRoom.id] || [];
-    const availableStaff = getAvailableStaff();
     const babiesInRoom = roomBabies[currentRoom.id] || [];
     
     return (
       <div>
-        <h2 className="text-xl font-bold mb-2">Room Assignments</h2>
+        <h2 className="text-xl font-bold mb-2">Baby/Patient Room Assignments</h2>
         <p className="text-sm text-gray-600 mb-4">
-          Room {currentRoomIndex + 1} of {ROOMS.length}
+          Room {currentRoomIndex + 1} of {ROOMS.length} - Assign babies/patients to rooms
         </p>
         
         <div className="bg-blue-50 p-4 rounded-lg mb-4">
@@ -632,7 +654,7 @@ export default function NICUStaffingWizard() {
             </button>
           </div>
           {babiesInRoom.length > 0 && (
-            <div className="flex flex-wrap gap-2 min-h-12 p-2 bg-gray-50 rounded">
+            <div className="flex flex-wrap gap-2 min-h-12 p-2 bg-gray-50 rounded mb-2">
               {babiesInRoom.map((baby, index) => (
                 <span
                   key={index}
@@ -642,11 +664,104 @@ export default function NICUStaffingWizard() {
                   <button
                     onClick={() => removeBabyFromRoom(currentRoom.id, index)}
                     className="text-red-600 hover:text-red-800 font-bold"
+                    title="Remove from room"
                   >
                     ×
                   </button>
                 </span>
               ))}
+            </div>
+          )}
+          
+          {/* Move babies from other rooms */}
+          {Object.keys(roomBabies).some(roomId => {
+            const babies = roomBabies[roomId] || [];
+            return roomId !== currentRoom.id && babies.length > 0;
+          }) && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-2">Move babies from other rooms:</label>
+              <div className="space-y-2">
+                {ROOMS.map(room => {
+                  const otherBabies = roomBabies[room.id] || [];
+                  if (room.id === currentRoom.id || otherBabies.length === 0) return null;
+                  
+                  return (
+                    <div key={room.id} className="border rounded p-2">
+                      <div className="text-xs font-medium text-gray-600 mb-1">{room.name}:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {otherBabies.map((baby, index) => (
+                          <button
+                            key={index}
+                            onClick={() => moveBabyToRoom(room.id, index, currentRoom.id)}
+                            className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs hover:bg-blue-200"
+                            title={`Move ${baby} to ${currentRoom.name}`}
+                          >
+                            {baby} →
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-between mt-6">
+          <button
+            onClick={() => {
+              setCurrentRoomIndex(prev => Math.max(0, prev - 1));
+              setNewBabyName('');
+            }}
+            disabled={currentRoomIndex === 0}
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+          >
+            ← Previous Room
+          </button>
+          
+          {currentRoomIndex < ROOMS.length - 1 ? (
+            <button
+              onClick={() => {
+                setCurrentRoomIndex(prev => prev + 1);
+                setNewBabyName('');
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded"
+            >
+              Next Room →
+            </button>
+          ) : (
+            <button
+              onClick={nextStep}
+              className="px-4 py-2 bg-green-600 text-white rounded"
+            >
+              Done with Babies ✓
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderRoomAssignments = () => {
+    const currentRoom = ROOMS[currentRoomIndex];
+    const assignedToThisRoom = roomAssignments[currentRoom.id] || [];
+    const availableStaff = getAvailableStaff();
+    const babiesInRoom = roomBabies[currentRoom.id] || [];
+    
+    return (
+      <div>
+        <h2 className="text-xl font-bold mb-2">Room Assignments</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Room {currentRoomIndex + 1} of {ROOMS.length}
+        </p>
+        
+        <div className="bg-blue-50 p-4 rounded-lg mb-4">
+          <h3 className="font-bold text-lg">{currentRoom.name}</h3>
+          {currentRoom.ext && <p className="text-sm text-gray-600">Ext: {currentRoom.ext}</p>}
+          {babiesInRoom.length > 0 && (
+            <div className="mt-2 text-sm">
+              <span className="font-medium">Babies:</span> {babiesInRoom.join(', ')}
             </div>
           )}
         </div>
@@ -695,7 +810,6 @@ export default function NICUStaffingWizard() {
           <button
             onClick={() => {
               setCurrentRoomIndex(prev => Math.max(0, prev - 1));
-              setNewBabyName('');
             }}
             disabled={currentRoomIndex === 0}
             className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
@@ -707,7 +821,6 @@ export default function NICUStaffingWizard() {
             <button
               onClick={() => {
                 setCurrentRoomIndex(prev => prev + 1);
-                setNewBabyName('');
               }}
               className="px-4 py-2 bg-blue-600 text-white rounded"
             >
@@ -906,9 +1019,10 @@ export default function NICUStaffingWizard() {
       case 0: return renderShiftInfo();
       case 1: return renderWorkingStaff();
       case 2: return renderKeyRoles();
-      case 3: return renderRoomAssignments();
-      case 4: return renderSpecialNotes();
-      case 5: return renderGeneratedSheet();
+      case 3: return renderBabyAssignments();
+      case 4: return renderRoomAssignments();
+      case 5: return renderSpecialNotes();
+      case 6: return renderGeneratedSheet();
       default: return null;
     }
   };
@@ -924,8 +1038,8 @@ export default function NICUStaffingWizard() {
           {renderCurrentStep()}
         </div>
         
-        {/* Navigation - don't show for room assignments (has its own) or final step */}
-        {currentStep !== 3 && currentStep !== 5 && (
+        {/* Navigation - don't show for baby assignments, room assignments (has its own) or final step */}
+        {currentStep !== 3 && currentStep !== 4 && currentStep !== 6 && (
           <div className="flex justify-between">
             <button
               onClick={prevStep}

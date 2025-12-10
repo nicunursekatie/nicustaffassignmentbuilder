@@ -52,13 +52,13 @@ const ROOMS = [
   { id: 'room6', name: 'Room 6', ext: '21126' },
   { id: 'room7', name: 'Room 7', ext: '21126' },
   { id: 'room8', name: 'Room 8', ext: '21126' },
-  { id: 'intermediate1', name: 'Intermediate', ext: '21130' },
-  { id: 'intermediate2', name: 'Intermediate', ext: '21130' },
-  { id: 'intermediate3', name: 'Intermediate', ext: '21129' },
+  { id: 'procedure', name: 'Procedure Room', ext: '' },
+  { id: 'intermediate1', name: 'Intermediate 1', ext: '21130' },
+  { id: 'intermediate2', name: 'Intermediate 2', ext: '21130' },
+  { id: 'intermediate3', name: 'Intermediate 3', ext: '21129' },
   { id: 'nest', name: 'Nest', ext: '36036' },
   { id: 'loft', name: 'Loft', ext: '36036' },
   { id: 'specialcare5', name: 'Special Care 5', ext: '38558' },
-  { id: 'procedure', name: 'Procedure Room', ext: '' },
 ];
 
 const STEPS = [
@@ -115,6 +115,9 @@ export default function NICUStaffingWizard() {
   
   // Baby name input for current room
   const [newBabyName, setNewBabyName] = useState('');
+  
+  // Special Care 5 open/closed status
+  const [specialCare5Open, setSpecialCare5Open] = useState(false);
 
   // Load staff from Firestore on component mount
   useEffect(() => {
@@ -610,19 +613,46 @@ export default function NICUStaffingWizard() {
   );
 
   const renderBabyAssignments = () => {
-    const currentRoom = ROOMS[currentRoomIndex];
+    // Filter out Special Care 5 if it's not open
+    const availableRooms = ROOMS.filter(room => {
+      if (room.id === 'specialcare5' && !specialCare5Open) {
+        return false;
+      }
+      return true;
+    });
+    
+    const currentRoom = availableRooms[currentRoomIndex];
     const babiesInRoom = roomBabies[currentRoom.id] || [];
     
     return (
       <div>
         <h2 className="text-xl font-bold mb-2">Baby/Patient Room Assignments</h2>
         <p className="text-sm text-gray-600 mb-4">
-          Room {currentRoomIndex + 1} of {ROOMS.length} - Assign babies/patients to rooms
+          Room {currentRoomIndex + 1} of {availableRooms.length} - Assign babies/patients to rooms
         </p>
+        
+        {/* Special Care 5 toggle */}
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={specialCare5Open}
+              onChange={(e) => setSpecialCare5Open(e.target.checked)}
+              className="mr-2 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500"
+            />
+            <span className="text-sm font-medium">Special Care 5 is open (holds 4 babies)</span>
+          </label>
+        </div>
         
         <div className="bg-blue-50 p-4 rounded-lg mb-4">
           <h3 className="font-bold text-lg">{currentRoom.name}</h3>
           {currentRoom.ext && <p className="text-sm text-gray-600">Ext: {currentRoom.ext}</p>}
+          {(currentRoom.id === 'intermediate1' || currentRoom.id === 'intermediate2' || currentRoom.id === 'intermediate3') && (
+            <p className="text-xs text-gray-500 mt-1">Part of Intermediate area (9 babies total across 3 rooms)</p>
+          )}
+          {currentRoom.id === 'specialcare5' && (
+            <p className="text-xs text-gray-500 mt-1">Holds up to 4 babies</p>
+          )}
         </div>
 
         {/* Babies/Patients in Room */}
@@ -720,7 +750,7 @@ export default function NICUStaffingWizard() {
             ← Previous Room
           </button>
           
-          {currentRoomIndex < ROOMS.length - 1 ? (
+          {currentRoomIndex < availableRooms.length - 1 ? (
             <button
               onClick={() => {
                 setCurrentRoomIndex(prev => prev + 1);
@@ -744,7 +774,15 @@ export default function NICUStaffingWizard() {
   };
 
   const renderRoomAssignments = () => {
-    const currentRoom = ROOMS[currentRoomIndex];
+    // Filter out Special Care 5 if it's not open
+    const availableRooms = ROOMS.filter(room => {
+      if (room.id === 'specialcare5' && !specialCare5Open) {
+        return false;
+      }
+      return true;
+    });
+    
+    const currentRoom = availableRooms[currentRoomIndex];
     const assignedToThisRoom = roomAssignments[currentRoom.id] || [];
     const availableStaff = getAvailableStaff();
     const babiesInRoom = roomBabies[currentRoom.id] || [];
@@ -753,7 +791,7 @@ export default function NICUStaffingWizard() {
       <div>
         <h2 className="text-xl font-bold mb-2">Room Assignments</h2>
         <p className="text-sm text-gray-600 mb-4">
-          Room {currentRoomIndex + 1} of {ROOMS.length}
+          Room {currentRoomIndex + 1} of {availableRooms.length}
         </p>
         
         <div className="bg-blue-50 p-4 rounded-lg mb-4">
@@ -817,7 +855,7 @@ export default function NICUStaffingWizard() {
             ← Previous Room
           </button>
           
-          {currentRoomIndex < ROOMS.length - 1 ? (
+          {currentRoomIndex < availableRooms.length - 1 ? (
             <button
               onClick={() => {
                 setCurrentRoomIndex(prev => prev + 1);
@@ -923,7 +961,7 @@ export default function NICUStaffingWizard() {
               const babies = roomBabies[room.id] || [];
               return (
                 <div key={room.id} className="border p-2">
-                  <div className="font-bold text-xs">{room.name} ext. {room.ext}</div>
+                  <div className="font-bold text-xs">{room.name} {room.ext && `ext. ${room.ext}`}</div>
                   {babies.length > 0 && (
                     <div className="text-xs text-gray-600 mb-1">
                       {babies.join(', ')}
@@ -940,7 +978,13 @@ export default function NICUStaffingWizard() {
 
           {/* Intermediate and other areas */}
           <div className="grid grid-cols-3 gap-2 mb-4">
-            {ROOMS.slice(9).map(room => {
+            {ROOMS.slice(9).filter(room => {
+              // Only show Special Care 5 if it's open
+              if (room.id === 'specialcare5' && !specialCare5Open) {
+                return false;
+              }
+              return true;
+            }).map(room => {
               const assigned = roomAssignments[room.id] || [];
               const babies = roomBabies[room.id] || [];
               return (

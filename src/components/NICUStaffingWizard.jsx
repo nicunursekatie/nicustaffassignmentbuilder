@@ -284,6 +284,34 @@ export default function NICUStaffingWizard() {
              firstName.includes(searchLower);
     });
 
+    // Sort staff: matching shift first, then opposite shift at bottom
+    const isNightShift = shiftTime === '7P-7A';
+    const sortedRoster = [...filteredRoster].sort((a, b) => {
+      const aShift = a.shift || '';
+      const bShift = b.shift || '';
+      
+      // Determine if staff matches current shift
+      const aMatches = (isNightShift && aShift === 'Night') || (!isNightShift && aShift === 'Day');
+      const bMatches = (isNightShift && bShift === 'Night') || (!isNightShift && bShift === 'Day');
+      
+      // Determine if staff is opposite shift
+      const aOpposite = (isNightShift && aShift === 'Day') || (!isNightShift && aShift === 'Night');
+      const bOpposite = (isNightShift && bShift === 'Day') || (!isNightShift && bShift === 'Night');
+      
+      // Matching shift first
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+      
+      // Opposite shift last
+      if (aOpposite && !bOpposite) return 1;
+      if (!aOpposite && bOpposite) return -1;
+      
+      // Otherwise, sort alphabetically by last name
+      const aName = (a.lastName || '').toLowerCase();
+      const bName = (b.lastName || '').toLowerCase();
+      return aName.localeCompare(bName);
+    });
+
     return (
       <div>
         <h2 className="text-xl font-bold mb-4">Who's Working Tonight?</h2>
@@ -330,7 +358,7 @@ export default function NICUStaffingWizard() {
             </div>
 
             {/* Staff Grid */}
-            {filteredRoster.length === 0 ? (
+            {sortedRoster.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <p>No staff members found matching "{staffSearch}"</p>
                 <button
@@ -343,7 +371,7 @@ export default function NICUStaffingWizard() {
             ) : (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
-                  {filteredRoster.map(staff => {
+                  {sortedRoster.map(staff => {
                     const isSelected = workingStaff.includes(staff.id);
                     return (
                       <button
@@ -394,15 +422,15 @@ export default function NICUStaffingWizard() {
                     {workingStaff.length} staff selected
                     {staffSearch && (
                       <span className="ml-2 text-gray-400">
-                        ({filteredRoster.length} matching)
+                        ({sortedRoster.length} matching)
                       </span>
                     )}
                   </p>
-                  {staffSearch && filteredRoster.length > 0 && (
+                  {staffSearch && sortedRoster.length > 0 && (
                     <button
                       onClick={() => {
                         // Select all filtered results
-                        filteredRoster.forEach(staff => {
+                        sortedRoster.forEach(staff => {
                           if (!workingStaff.includes(staff.id)) {
                             toggleStaffWorking(staff.id);
                           }
@@ -411,7 +439,7 @@ export default function NICUStaffingWizard() {
                       }}
                       className="text-sm text-blue-600 hover:text-blue-800"
                     >
-                      Select all {filteredRoster.length} shown
+                      Select all {sortedRoster.length} shown
                     </button>
                   )}
                 </div>

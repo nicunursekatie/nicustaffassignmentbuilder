@@ -205,11 +205,11 @@ export default function NICUStaffingWizard() {
     
     // If adding a full-time charge nurse and no charge is set, auto-set them as charge
     if (isAdding && staff?.isChargeNurse && !charge) {
-      setCharge(parseInt(staffId));
+      setCharge(staffId);
     }
     
     // If removing the current charge nurse who is a full-time charge, clear charge
-    if (!isAdding && staff?.isChargeNurse && charge === parseInt(staffId)) {
+    if (!isAdding && staff?.isChargeNurse && charge === staffId) {
       setCharge(null);
     }
   };
@@ -575,12 +575,13 @@ export default function NICUStaffingWizard() {
         <label className="block text-sm font-medium mb-1">Charge Nurse</label>
         <select 
           value={charge || ''}
-          onChange={(e) => setCharge(e.target.value ? parseInt(e.target.value) : null)}
+          onChange={(e) => setCharge(e.target.value || null)}
           className="w-full p-2 border rounded"
         >
           <option value="">Select charge nurse...</option>
           {workingStaff.map(id => {
             const staff = getStaffById(id);
+            if (!staff) return null;
             return <option key={id} value={id}>{formatStaffName(staff)}</option>;
           })}
         </select>
@@ -590,12 +591,13 @@ export default function NICUStaffingWizard() {
         <label className="block text-sm font-medium mb-1">Resource Nurse</label>
         <select 
           value={resource || ''}
-          onChange={(e) => setResource(e.target.value ? parseInt(e.target.value) : null)}
+          onChange={(e) => setResource(e.target.value || null)}
           className="w-full p-2 border rounded"
         >
           <option value="">Select resource nurse...</option>
           {workingStaff.map(id => {
             const staff = getStaffById(id);
+            if (!staff) return null;
             return <option key={id} value={id}>{formatStaffName(staff)}</option>;
           })}
         </select>
@@ -605,12 +607,13 @@ export default function NICUStaffingWizard() {
         <label className="block text-sm font-medium mb-1">L&D RN</label>
         <select 
           value={ladRN || ''}
-          onChange={(e) => setLadRN(e.target.value ? parseInt(e.target.value) : null)}
+          onChange={(e) => setLadRN(e.target.value || null)}
           className="w-full p-2 border rounded"
         >
           <option value="">Select L&D RN...</option>
           {workingStaff.map(id => {
             const staff = getStaffById(id);
+            if (!staff) return null;
             return <option key={id} value={id}>{formatStaffName(staff)}</option>;
           })}
         </select>
@@ -641,9 +644,9 @@ export default function NICUStaffingWizard() {
       <div>
         <label className="block text-sm font-medium mb-1">MD</label>
         <select 
-          value={typeof md === 'number' ? md : ''}
+          value={md && typeof md === 'string' && workingStaff.some(id => id === md) ? md : ''}
           onChange={(e) => {
-            const selectedId = e.target.value ? parseInt(e.target.value) : null;
+            const selectedId = e.target.value || null;
             setMD(selectedId);
             if (selectedId) {
               const selectedStaff = getStaffById(selectedId);
@@ -669,7 +672,7 @@ export default function NICUStaffingWizard() {
             <label className="block text-sm font-medium mb-1">MD Name (if not in list)</label>
             <input 
               type="text"
-              value={typeof md === 'string' ? md : ''}
+              value={md && typeof md === 'string' && !workingStaff.some(id => id === md) ? md : ''}
               onChange={(e) => {
                 setMD(e.target.value);
                 if (!e.target.value) setMDPhone('');
@@ -693,9 +696,9 @@ export default function NICUStaffingWizard() {
       <div>
         <label className="block text-sm font-medium mb-1">NP (Nurse Practitioner)</label>
         <select 
-          value={typeof np === 'number' ? np : ''}
+          value={np && typeof np === 'string' && workingStaff.some(id => id === np) ? np : ''}
           onChange={(e) => {
-            const selectedId = e.target.value ? parseInt(e.target.value) : null;
+            const selectedId = e.target.value || null;
             setNP(selectedId);
             if (selectedId) {
               const selectedStaff = getStaffById(selectedId);
@@ -721,7 +724,7 @@ export default function NICUStaffingWizard() {
             <label className="block text-sm font-medium mb-1">NP Name (if not in list)</label>
             <input 
               type="text"
-              value={typeof np === 'string' ? np : ''}
+              value={np && typeof np === 'string' && !workingStaff.some(id => id === np) ? np : ''}
               onChange={(e) => {
                 setNP(e.target.value);
                 if (!e.target.value) setNPPhone('');

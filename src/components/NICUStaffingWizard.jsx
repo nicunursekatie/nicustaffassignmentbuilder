@@ -96,6 +96,9 @@ export default function NICUStaffingWizard() {
   // Room assignments - map of roomId to array of staff ids
   const [roomAssignments, setRoomAssignments] = useState({});
   
+  // Babies/patients in each room - map of roomId to array of baby names/info
+  const [roomBabies, setRoomBabies] = useState({});
+  
   // Special notes
   const [isolationPatients, setIsolationPatients] = useState('');
   const [medicalUpdates, setMedicalUpdates] = useState('');
@@ -108,6 +111,9 @@ export default function NICUStaffingWizard() {
   
   // Search filter for staff selection
   const [staffSearch, setStaffSearch] = useState('');
+  
+  // Baby name input for current room
+  const [newBabyName, setNewBabyName] = useState('');
 
   // Load staff from Firestore on component mount
   useEffect(() => {
@@ -171,6 +177,21 @@ export default function NICUStaffingWizard() {
     setRoomAssignments(prev => ({
       ...prev,
       [roomId]: (prev[roomId] || []).filter(id => id !== staffId)
+    }));
+  };
+
+  const addBabyToRoom = (roomId, babyName) => {
+    if (!babyName.trim()) return;
+    setRoomBabies(prev => ({
+      ...prev,
+      [roomId]: [...(prev[roomId] || []), babyName.trim()]
+    }));
+  };
+
+  const removeBabyFromRoom = (roomId, babyIndex) => {
+    setRoomBabies(prev => ({
+      ...prev,
+      [roomId]: (prev[roomId] || []).filter((_, index) => index !== babyIndex)
     }));
   };
 
@@ -550,6 +571,7 @@ export default function NICUStaffingWizard() {
     const currentRoom = ROOMS[currentRoomIndex];
     const assignedToThisRoom = roomAssignments[currentRoom.id] || [];
     const availableStaff = getAvailableStaff();
+    const babiesInRoom = roomBabies[currentRoom.id] || [];
     
     return (
       <div>
@@ -561,6 +583,54 @@ export default function NICUStaffingWizard() {
         <div className="bg-blue-50 p-4 rounded-lg mb-4">
           <h3 className="font-bold text-lg">{currentRoom.name}</h3>
           {currentRoom.ext && <p className="text-sm text-gray-600">Ext: {currentRoom.ext}</p>}
+        </div>
+
+        {/* Babies/Patients in Room */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">Babies/Patients in this room:</label>
+          <div className="flex gap-2 mb-2">
+            <input
+              type="text"
+              value={newBabyName}
+              onChange={(e) => setNewBabyName(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addBabyToRoom(currentRoom.id, newBabyName);
+                  setNewBabyName('');
+                }
+              }}
+              placeholder="Enter baby/patient name..."
+              className="flex-1 p-2 border rounded"
+            />
+            <button
+              onClick={() => {
+                addBabyToRoom(currentRoom.id, newBabyName);
+                setNewBabyName('');
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Add
+            </button>
+          </div>
+          {babiesInRoom.length > 0 && (
+            <div className="flex flex-wrap gap-2 min-h-12 p-2 bg-gray-50 rounded">
+              {babiesInRoom.map((baby, index) => (
+                <span
+                  key={index}
+                  className="bg-white border border-gray-300 px-3 py-1 rounded text-sm flex items-center gap-2"
+                >
+                  {baby}
+                  <button
+                    onClick={() => removeBabyFromRoom(currentRoom.id, index)}
+                    className="text-red-600 hover:text-red-800 font-bold"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="mb-4">
@@ -605,7 +675,10 @@ export default function NICUStaffingWizard() {
 
         <div className="flex justify-between mt-6">
           <button
-            onClick={() => setCurrentRoomIndex(prev => Math.max(0, prev - 1))}
+            onClick={() => {
+              setCurrentRoomIndex(prev => Math.max(0, prev - 1));
+              setNewBabyName('');
+            }}
             disabled={currentRoomIndex === 0}
             className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
           >
@@ -614,7 +687,10 @@ export default function NICUStaffingWizard() {
           
           {currentRoomIndex < ROOMS.length - 1 ? (
             <button
-              onClick={() => setCurrentRoomIndex(prev => prev + 1)}
+              onClick={() => {
+                setCurrentRoomIndex(prev => prev + 1);
+                setNewBabyName('');
+              }}
               className="px-4 py-2 bg-blue-600 text-white rounded"
             >
               Next Room →
@@ -713,9 +789,15 @@ export default function NICUStaffingWizard() {
           <div className="grid grid-cols-3 gap-2 mb-4">
             {ROOMS.slice(0, 9).map(room => {
               const assigned = roomAssignments[room.id] || [];
+              const babies = roomBabies[room.id] || [];
               return (
                 <div key={room.id} className="border p-2">
                   <div className="font-bold text-xs">{room.name} ext. {room.ext}</div>
+                  {babies.length > 0 && (
+                    <div className="text-xs text-gray-600 mb-1">
+                      {babies.join(', ')}
+                    </div>
+                  )}
                   {assigned.map(id => {
                     const staff = getStaffById(id);
                     return <div key={id}>{formatStaffForSheet(staff)}</div>;
@@ -729,9 +811,15 @@ export default function NICUStaffingWizard() {
           <div className="grid grid-cols-3 gap-2 mb-4">
             {ROOMS.slice(9).map(room => {
               const assigned = roomAssignments[room.id] || [];
+              const babies = roomBabies[room.id] || [];
               return (
                 <div key={room.id} className="border p-2">
                   <div className="font-bold text-xs">{room.name} {room.ext && `ext. ${room.ext}`}</div>
+                  {babies.length > 0 && (
+                    <div className="text-xs text-gray-600 mb-1">
+                      {babies.join(', ')}
+                    </div>
+                  )}
                   {assigned.map(id => {
                     const staff = getStaffById(id);
                     return <div key={id}>{formatStaffForSheet(staff)}</div>;

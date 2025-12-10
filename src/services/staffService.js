@@ -6,7 +6,8 @@ import {
   updateDoc, 
   deleteDoc,
   query,
-  orderBy 
+  orderBy,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -90,6 +91,129 @@ export const deleteStaff = async (staffId) => {
     await deleteDoc(staffRef);
   } catch (error) {
     console.error('Error deleting staff:', error);
+    throw error;
+  }
+};
+
+/**
+ * Clear all staff from Firestore
+ * @returns {Promise<void>}
+ */
+export const clearAllStaff = async () => {
+  try {
+    const staffRef = collection(db, STAFF_COLLECTION);
+    const querySnapshot = await getDocs(staffRef);
+    
+    // Use batch to delete all documents
+    const batch = writeBatch(db);
+    querySnapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
+    console.log(`Successfully deleted ${querySnapshot.docs.length} staff members.`);
+  } catch (error) {
+    console.error('Error clearing staff:', error);
+    throw error;
+  }
+};
+
+/**
+ * Import staff from plain text
+ * Supports multiple formats:
+ * - CSV: LastName,FirstName,Phone,Extension,Role
+ * - Tab-separated: LastName\tFirstName\tPhone\tExtension\tRole
+ * - Space-separated: LastName FirstName Phone Extension Role
+ * - Minimal: LastName,Phone or LastName Phone
+ * @param {string} text - Plain text to parse
+ * @returns {Promise<{success: number, errors: Array}>}
+ */
+export const importStaffFromText = async (text) => {
+  try {
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    const staffRef = collection(db, STAFF_COLLECTION);
+    const results = { success: 0, errors: [] };
+    const batch = writeBatch(db);
+    let batchCount = 0;
+    const BATCH_SIZE = 500; // Firestore batch limit
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      let staffData;
+
+      // Try to parse the line
+      if (line.includes(',')) {
+        // CSV format: LastName,FirstName,Phone,Extension,Role
+        const parts = line.split(',').map(p => p.trim());
+        staffData = {
+          lastName: parts[0] || '',
+          firstName: parts[1] || '',
+          phone: parts[2] || '',
+          extension: parts[3] || '',
+          role: parts[4] || 'RN'
+        };
+      } else if (line.includes('\t')) {
+        // Tab-separated format
+        const parts = line.split('\t').map(p => p.trim());
+        staffData = {
+          lastName: parts[0] || '',
+          firstName: parts[1] || '',
+          phone: parts[2] || '',
+          extension: parts[3] || '',
+          role: parts[4] || 'RN'
+        };
+      } else {
+        // Space-separated format: LastName FirstName Phone Extension Role
+        const parts = line.split(/\s+/).filter(p => p.length > 0);
+        if (parts.length >= 2) {
+          staffData = {
+            lastName: parts[0] || '',
+            firstName: parts[1] || '',
+            phone: parts[2] || '',
+            extension: parts[3] || '',
+            role: parts[4] || 'RN'
+          };
+        } else {
+          results.errors.push(`Line ${i + 1}: Invalid format - "${line}"`);
+          continue;
+        }
+      }
+
+      // Validate required fields
+      if (!staffData.lastName) {
+        results.errors.push(`Line ${i + 1}: Missing last name - "${line}"`);
+        continue;
+      }
+
+      // Add to batch
+      const docRef = doc(staffRef);
+      batch.set(docRef, {
+        lastName: staffData.lastName,
+        firstName: staffData.firstName || '',
+        phone: staffData.phone || '',
+        extension: staffData.extension || '',
+        role: staffData.role || 'RN',
+        createdAt: new Date().toISOString()
+      });
+
+      batchCount++;
+      results.success++;
+
+      // Commit batch if we've reached the limit
+      if (batchCount >= BATCH_SIZE) {
+        await batch.commit();
+        batchCount = 0;
+      }
+    }
+
+    // Commit remaining items
+    if (batchCount > 0) {
+      await batch.commit();
+    }
+
+    return results;
+  } catch (error) {
+    console.error('Error importing staff:', error);
     throw error;
   }
 };

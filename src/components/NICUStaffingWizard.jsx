@@ -105,6 +105,9 @@ export default function NICUStaffingWizard() {
   
   // Current room index for assignment step
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
+  
+  // Search filter for staff selection
+  const [staffSearch, setStaffSearch] = useState('');
 
   // Load staff from Firestore on component mount
   useEffect(() => {
@@ -269,6 +272,18 @@ export default function NICUStaffingWizard() {
       );
     }
 
+    // Filter staff based on search term
+    const filteredRoster = roster.filter(staff => {
+      if (!staffSearch.trim()) return true;
+      const searchLower = staffSearch.toLowerCase();
+      const fullName = formatStaffName(staff).toLowerCase();
+      const lastName = (staff.lastName || '').toLowerCase();
+      const firstName = (staff.firstName || '').toLowerCase();
+      return fullName.includes(searchLower) || 
+             lastName.includes(searchLower) || 
+             firstName.includes(searchLower);
+    });
+
     return (
       <div>
         <h2 className="text-xl font-bold mb-4">Who's Working Tonight?</h2>
@@ -294,24 +309,91 @@ export default function NICUStaffingWizard() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
-              {roster.map(staff => (
+            {/* Search Bar */}
+            <div className="mb-4">
+              <input
+                type="text"
+                value={staffSearch}
+                onChange={(e) => setStaffSearch(e.target.value)}
+                placeholder="Search by name... (start typing)"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                autoFocus
+              />
+              {staffSearch && (
                 <button
-                  key={staff.id}
-                  onClick={() => toggleStaffWorking(staff.id)}
-                  className={`p-2 text-left text-sm rounded border transition-colors
-                    ${workingStaff.includes(staff.id) 
-                      ? 'bg-blue-100 border-blue-500 text-blue-800' 
-                      : 'bg-white border-gray-300 hover:border-blue-300'}`}
+                  onClick={() => setStaffSearch('')}
+                  className="mt-2 text-sm text-blue-600 hover:text-blue-800"
                 >
-                  {formatStaffName(staff)}
+                  Clear search
                 </button>
-              ))}
+              )}
             </div>
-            
-            <p className="mt-4 text-sm text-gray-600">
-              {workingStaff.length} staff selected
-            </p>
+
+            {/* Staff Grid */}
+            {filteredRoster.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No staff members found matching "{staffSearch}"</p>
+                <button
+                  onClick={() => setStaffSearch('')}
+                  className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Clear search to see all staff
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+                  {filteredRoster.map(staff => {
+                    const isSelected = workingStaff.includes(staff.id);
+                    return (
+                      <button
+                        key={staff.id}
+                        onClick={() => {
+                          toggleStaffWorking(staff.id);
+                          // Clear search after selection for quick multiple selections
+                          if (!isSelected) {
+                            setStaffSearch('');
+                          }
+                        }}
+                        className={`p-2 text-left text-sm rounded border transition-colors
+                          ${isSelected
+                            ? 'bg-blue-100 border-blue-500 text-blue-800' 
+                            : 'bg-white border-gray-300 hover:border-blue-300 hover:bg-blue-50'}`}
+                      >
+                        {formatStaffName(staff)}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <div className="mt-4 flex justify-between items-center">
+                  <p className="text-sm text-gray-600">
+                    {workingStaff.length} staff selected
+                    {staffSearch && (
+                      <span className="ml-2 text-gray-400">
+                        ({filteredRoster.length} matching)
+                      </span>
+                    )}
+                  </p>
+                  {staffSearch && filteredRoster.length > 0 && (
+                    <button
+                      onClick={() => {
+                        // Select all filtered results
+                        filteredRoster.forEach(staff => {
+                          if (!workingStaff.includes(staff.id)) {
+                            toggleStaffWorking(staff.id);
+                          }
+                        });
+                        setStaffSearch('');
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Select all {filteredRoster.length} shown
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

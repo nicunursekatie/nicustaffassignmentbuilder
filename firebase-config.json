@@ -1,0 +1,15 @@
+{
+  "version": "2",
+  "projectNumber": "588263243942",
+  "projectId": "nicu-assignment-sheet-builder",
+  "appId": "1:588263243942:web:fa142c0c82581c58f3f467",
+  "realtimeDatabaseInstanceUri": "https://nicu-assignment-sheet-builder-default-rtdb.firebaseio.com",
+  "realtimeDatabaseUrl": "",
+  "storageBucket": "nicu-assignment-sheet-builder.firebasestorage.app",
+  "locationId": "",
+  "apiKey": "AIzaSyDHILPVvX5-9NXn6_TphCNMTra2KhdMyy4",
+  "authDomain": "nicu-assignment-sheet-builder.firebaseapp.com",
+  "messagingSenderId": "588263243942",
+  "measurementId": "G-BWJ53PJSLT"
+}
+

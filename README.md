@@ -44,7 +44,8 @@ npm run preview
 ## Features
 
 - Multi-step wizard for creating staffing sheets
-- Staff roster management
+- **Firebase Firestore database** for staff roster storage
+- **Staff management page** - Add, edit, and delete staff members with extension numbers
 - Room assignments
 - Key role assignments (Charge Nurse, Resource Nurse, etc.)
 - Special notes section
@@ -55,8 +56,12 @@ npm run preview
 ```
 ├── src/
 │   ├── components/
-│   │   └── NICUStaffingWizard.jsx  # Main component
-│   ├── App.jsx                      # App wrapper
+│   │   ├── NICUStaffingWizard.jsx   # Main wizard component
+│   │   └── StaffManagement.jsx      # Staff CRUD management
+│   ├── services/
+│   │   └── staffService.js          # Firestore staff operations
+│   ├── firebase.js                  # Firebase configuration
+│   ├── App.jsx                      # App wrapper with routing
 │   ├── main.jsx                     # Entry point
 │   └── index.css                    # Tailwind CSS imports
 ├── index.html                       # HTML entry point
@@ -65,4 +70,20 @@ npm run preview
 ├── tailwind.config.js               # Tailwind configuration
 └── postcss.config.js                # PostCSS configuration
 ```
+
+## Firebase Setup
+
+1. The app uses Firebase Firestore to store staff data
+2. On first load, if no staff exists, the app will automatically migrate the initial roster
+3. Staff data includes:
+   - Last Name (required)
+   - First Name (optional)
+   - Phone Extension
+   - Work Extension Number
+   - Role (default: RN)
+
+## Navigation
+
+- `/` - Staffing Wizard (main workflow)
+- `/staff` - Staff Management (add/edit/delete staff members)
 

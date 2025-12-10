@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getAllStaff, migrateInitialStaff } from '../services/staffService';
 
 // Sample staff roster - this would eventually be editable/persistent
 const INITIAL_ROSTER = [
@@ -71,7 +72,9 @@ const STEPS = [
 
 export default function NICUStaffingWizard() {
   const [currentStep, setCurrentStep] = useState(0);
-  const [roster] = useState(INITIAL_ROSTER);
+  const [roster, setRoster] = useState([]);
+  const [isLoadingStaff, setIsLoadingStaff] = useState(true);
+  const [staffError, setStaffError] = useState(null);
   
   // Shift info
   const [shiftDate, setShiftDate] = useState(new Date().toISOString().split('T')[0]);
@@ -102,6 +105,42 @@ export default function NICUStaffingWizard() {
   
   // Current room index for assignment step
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
+
+  // Load staff from Firestore on component mount
+  useEffect(() => {
+    const loadStaff = async () => {
+      try {
+        setIsLoadingStaff(true);
+        setStaffError(null);
+        const staffData = await getAllStaff();
+        
+        // If no staff exists, offer to migrate initial data
+        if (staffData.length === 0) {
+          console.log('No staff found in database. You can migrate initial data.');
+          // Optionally auto-migrate, or show a button to migrate
+          try {
+            await migrateInitialStaff(INITIAL_ROSTER);
+            const migratedStaff = await getAllStaff();
+            setRoster(migratedStaff);
+          } catch (migrateError) {
+            console.error('Migration error:', migrateError);
+            setStaffError('Failed to load staff. Please refresh the page.');
+          }
+        } else {
+          setRoster(staffData);
+        }
+      } catch (error) {
+        console.error('Error loading staff:', error);
+        setStaffError('Failed to load staff roster. Please refresh the page.');
+        // Fallback to initial roster if Firestore fails
+        setRoster(INITIAL_ROSTER);
+      } finally {
+        setIsLoadingStaff(false);
+      }
+    };
+
+    loadStaff();
+  }, []);
 
   const toggleStaffWorking = (staffId) => {
     setWorkingStaff(prev => 
@@ -207,31 +246,77 @@ export default function NICUStaffingWizard() {
     </div>
   );
 
-  const renderWorkingStaff = () => (
-    <div>
-      <h2 className="text-xl font-bold mb-4">Who's Working Tonight?</h2>
-      <p className="text-sm text-gray-600 mb-4">Select all staff on shift</p>
-      
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
-        {roster.map(staff => (
+  const renderWorkingStaff = () => {
+    if (isLoadingStaff) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-600">Loading staff roster...</p>
+        </div>
+      );
+    }
+
+    if (staffError) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-red-600 mb-2">{staffError}</p>
           <button
-            key={staff.id}
-            onClick={() => toggleStaffWorking(staff.id)}
-            className={`p-2 text-left text-sm rounded border transition-colors
-              ${workingStaff.includes(staff.id) 
-                ? 'bg-blue-100 border-blue-500 text-blue-800' 
-                : 'bg-white border-gray-300 hover:border-blue-300'}`}
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
           >
-            {formatStaffName(staff)}
+            Refresh Page
           </button>
-        ))}
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <h2 className="text-xl font-bold mb-4">Who's Working Tonight?</h2>
+        <p className="text-sm text-gray-600 mb-4">Select all staff on shift</p>
+        
+        {roster.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-600 mb-4">No staff members found in database.</p>
+            <button
+              onClick={async () => {
+                try {
+                  await migrateInitialStaff(INITIAL_ROSTER);
+                  const staffData = await getAllStaff();
+                  setRoster(staffData);
+                } catch (error) {
+                  setStaffError('Failed to migrate staff data.');
+                }
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded"
+            >
+              Load Initial Staff Roster
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+              {roster.map(staff => (
+                <button
+                  key={staff.id}
+                  onClick={() => toggleStaffWorking(staff.id)}
+                  className={`p-2 text-left text-sm rounded border transition-colors
+                    ${workingStaff.includes(staff.id) 
+                      ? 'bg-blue-100 border-blue-500 text-blue-800' 
+                      : 'bg-white border-gray-300 hover:border-blue-300'}`}
+                >
+                  {formatStaffName(staff)}
+                </button>
+              ))}
+            </div>
+            
+            <p className="mt-4 text-sm text-gray-600">
+              {workingStaff.length} staff selected
+            </p>
+          </>
+        )}
       </div>
-      
-      <p className="mt-4 text-sm text-gray-600">
-        {workingStaff.length} staff selected
-      </p>
-    </div>
-  );
+    );
+  };
 
   const renderKeyRoles = () => (
     <div className="space-y-4">
@@ -590,7 +675,7 @@ export default function NICUStaffingWizard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
+    <div className="bg-gray-100 p-4">
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
         <h1 className="text-2xl font-bold text-center mb-6">NICU Staffing Sheet</h1>
         

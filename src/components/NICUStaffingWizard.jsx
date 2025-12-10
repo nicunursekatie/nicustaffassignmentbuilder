@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAllStaff, migrateInitialStaff } from '../services/staffService';
+import { saveBabyAssignments, loadShift } from '../services/shiftService';
 
 // Sample staff roster - this would eventually be editable/persistent
 const INITIAL_ROSTER = [
@@ -157,6 +158,40 @@ export default function NICUStaffingWizard() {
 
     loadStaff();
   }, []);
+
+  // Load baby assignments when shift date/time changes
+  useEffect(() => {
+    const loadBabyAssignments = async () => {
+      if (!shiftDate || !shiftTime) return;
+      
+      try {
+        const shiftData = await loadShift(shiftDate, shiftTime);
+        if (shiftData && shiftData.roomBabies) {
+          setRoomBabies(shiftData.roomBabies);
+        }
+      } catch (error) {
+        console.error('Error loading baby assignments:', error);
+        // Don't show error to user, just log it
+      }
+    };
+
+    loadBabyAssignments();
+  }, [shiftDate, shiftTime]);
+
+  // Auto-save baby assignments when they change (debounced)
+  useEffect(() => {
+    if (!shiftDate || !shiftTime) return;
+    
+    const timeoutId = setTimeout(async () => {
+      try {
+        await saveBabyAssignments(shiftDate, shiftTime, roomBabies);
+      } catch (error) {
+        console.error('Error auto-saving baby assignments:', error);
+      }
+    }, 1000); // Debounce: save 1 second after last change
+
+    return () => clearTimeout(timeoutId);
+  }, [roomBabies, shiftDate, shiftTime]);
 
   const toggleStaffWorking = (staffId) => {
     const staff = getStaffById(staffId);

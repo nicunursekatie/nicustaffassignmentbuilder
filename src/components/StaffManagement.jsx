@@ -592,39 +592,39 @@ Jones,A+B,78278,21126,RN`}
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+              <th className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
                 <input
                   type="checkbox"
                   checked={selectedStaff.size === staff.length && staff.length > 0}
                   onChange={toggleSelectAll}
-                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
                 />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="sticky left-16 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
                 Name
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Phone Ext
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Work Ext
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Role
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Shift
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Preceptee
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Traveler
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Charge
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 z-10 bg-gray-50">
                 Actions
               </th>
             </tr>
@@ -642,27 +642,29 @@ Jones,A+B,78278,21126,RN`}
                   key={member.id} 
                   className={`hover:bg-gray-50 ${selectedStaff.has(member.id) ? 'bg-purple-50' : ''}`}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="sticky left-0 z-10 bg-white px-4 py-4 whitespace-nowrap">
                     <input
                       type="checkbox"
                       checked={selectedStaff.has(member.id)}
                       onChange={() => toggleStaffSelection(member.id)}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className={`sticky left-16 z-10 px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 min-w-[150px] ${
+                    selectedStaff.has(member.id) ? 'bg-purple-50' : 'bg-white'
+                  }`}>
                     {formatStaffName(member)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                     {member.phone || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                     {member.extension || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                     {member.role || 'RN'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                     {member.shift ? (
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
                         member.shift === 'Day' 
@@ -675,7 +677,7 @@ Jones,A+B,78278,21126,RN`}
                       '-'
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                     {member.isPreceptee ? (
                       <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
                         Preceptee
@@ -684,7 +686,7 @@ Jones,A+B,78278,21126,RN`}
                       '-'
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                     {member.isTraveler ? (
                       <span className="px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800">
                         Traveler
@@ -693,7 +695,7 @@ Jones,A+B,78278,21126,RN`}
                       '-'
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                     {member.isChargeNurse ? (
                       <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
                         Charge
@@ -702,17 +704,19 @@ Jones,A+B,78278,21126,RN`}
                       '-'
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className={`px-4 py-4 whitespace-nowrap text-sm font-medium sticky right-0 z-10 ${
+                    selectedStaff.has(member.id) ? 'bg-purple-50' : 'bg-white'
+                  }`}>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleEdit(member)}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded hover:bg-blue-50"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDelete(member.id, formatStaffName(member))}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-red-600 hover:text-red-900 px-2 py-1 rounded hover:bg-red-50"
                       >
                         Delete
                       </button>

@@ -44,6 +44,7 @@ export const getAllStaff = async () => {
  * @param {string} staffData.shift - Shift designation: 'Day', 'Night', or '' (optional)
  * @param {boolean} staffData.isPreceptee - Whether staff member is a preceptee (optional)
  * @param {boolean} staffData.isTraveler - Whether staff member is a traveler (optional)
+ * @param {boolean} staffData.isChargeNurse - Whether staff member is a full-time charge nurse (optional)
  * @returns {Promise<string>} Document ID of the new staff member
  */
 export const addStaff = async (staffData) => {
@@ -58,6 +59,7 @@ export const addStaff = async (staffData) => {
       shift: staffData.shift || '',
       isPreceptee: staffData.isPreceptee || false,
       isTraveler: staffData.isTraveler || false,
+      isChargeNurse: staffData.isChargeNurse || false,
       createdAt: new Date().toISOString()
     });
     return docRef.id;
@@ -193,7 +195,7 @@ export const importStaffFromText = async (text) => {
 
       // Try to parse the line
       if (line.includes(',')) {
-        // CSV format: LastName,FirstName,Phone,Extension,Role,Shift,IsPreceptee,IsTraveler
+        // CSV format: LastName,FirstName,Phone,Extension,Role,Shift,IsPreceptee,IsTraveler,IsChargeNurse
         const parts = line.split(',').map(p => p.trim());
         staffData = {
           lastName: parts[0] || '',
@@ -203,7 +205,8 @@ export const importStaffFromText = async (text) => {
           role: parts[4] || 'RN',
           shift: parts[5] || '',
           isPreceptee: parts[6] === 'true' || parts[6] === '1' || parts[6] === 'yes' || false,
-          isTraveler: parts[7] === 'true' || parts[7] === '1' || parts[7] === 'yes' || false
+          isTraveler: parts[7] === 'true' || parts[7] === '1' || parts[7] === 'yes' || false,
+          isChargeNurse: parts[8] === 'true' || parts[8] === '1' || parts[8] === 'yes' || false
         };
       } else if (line.includes('\t')) {
         // Tab-separated format
@@ -216,10 +219,11 @@ export const importStaffFromText = async (text) => {
           role: parts[4] || 'RN',
           shift: parts[5] || '',
           isPreceptee: parts[6] === 'true' || parts[6] === '1' || parts[6] === 'yes' || false,
-          isTraveler: parts[7] === 'true' || parts[7] === '1' || parts[7] === 'yes' || false
+          isTraveler: parts[7] === 'true' || parts[7] === '1' || parts[7] === 'yes' || false,
+          isChargeNurse: parts[8] === 'true' || parts[8] === '1' || parts[8] === 'yes' || false
         };
       } else {
-        // Space-separated format: LastName FirstName Phone Extension Role Shift IsPreceptee IsTraveler
+        // Space-separated format: LastName FirstName Phone Extension Role Shift IsPreceptee IsTraveler IsChargeNurse
         const parts = line.split(/\s+/).filter(p => p.length > 0);
         if (parts.length >= 2) {
           staffData = {
@@ -230,7 +234,8 @@ export const importStaffFromText = async (text) => {
             role: parts[4] || 'RN',
             shift: parts[5] || '',
             isPreceptee: parts[6] === 'true' || parts[6] === '1' || parts[6] === 'yes' || false,
-            isTraveler: parts[7] === 'true' || parts[7] === '1' || parts[7] === 'yes' || false
+            isTraveler: parts[7] === 'true' || parts[7] === '1' || parts[7] === 'yes' || false,
+            isChargeNurse: parts[8] === 'true' || parts[8] === '1' || parts[8] === 'yes' || false
           };
         } else {
           results.errors.push(`Line ${i + 1}: Invalid format - "${line}"`);
@@ -255,6 +260,7 @@ export const importStaffFromText = async (text) => {
         shift: staffData.shift || '',
         isPreceptee: staffData.isPreceptee || false,
         isTraveler: staffData.isTraveler || false,
+        isChargeNurse: staffData.isChargeNurse || false,
         createdAt: new Date().toISOString()
       });
 
@@ -306,6 +312,7 @@ export const migrateInitialStaff = async (initialStaff) => {
         shift: '', // Shift designation (can be set later)
         isPreceptee: false, // Preceptee status (can be set later)
         isTraveler: false, // Traveler status (can be set later)
+        isChargeNurse: false, // Charge nurse status (can be set later)
         createdAt: new Date().toISOString()
       })
     );

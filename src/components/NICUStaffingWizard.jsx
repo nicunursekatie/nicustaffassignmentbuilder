@@ -152,11 +152,24 @@ export default function NICUStaffingWizard() {
   }, []);
 
   const toggleStaffWorking = (staffId) => {
+    const staff = getStaffById(staffId);
+    const isAdding = !workingStaff.includes(staffId);
+    
     setWorkingStaff(prev => 
       prev.includes(staffId) 
         ? prev.filter(id => id !== staffId)
         : [...prev, staffId]
     );
+    
+    // If adding a full-time charge nurse and no charge is set, auto-set them as charge
+    if (isAdding && staff?.isChargeNurse && !charge) {
+      setCharge(parseInt(staffId));
+    }
+    
+    // If removing the current charge nurse who is a full-time charge, clear charge
+    if (!isAdding && staff?.isChargeNurse && charge === parseInt(staffId)) {
+      setCharge(null);
+    }
   };
 
   const getStaffById = (id) => roster.find(s => s.id === id);
@@ -412,6 +425,11 @@ export default function NICUStaffingWizard() {
                         <div className="flex items-center justify-between gap-2">
                           <span>{formatStaffName(staff)}</span>
                           <div className="flex gap-1">
+                            {staff.isChargeNurse && (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">
+                                Charge
+                              </span>
+                            )}
                             {staff.shift && (
                               <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
                                 staff.shift === 'Day' 

@@ -20,7 +20,8 @@ export default function StaffManagement() {
     role: 'RN',
     shift: '',
     isPreceptee: false,
-    isTraveler: false
+    isTraveler: false,
+    isChargeNurse: false
   });
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export default function StaffManagement() {
       } else {
         await addStaff(formData);
       }
-      setFormData({ lastName: '', firstName: '', phone: '', extension: '', role: 'RN', shift: '', isPreceptee: false, isTraveler: false });
+      setFormData({ lastName: '', firstName: '', phone: '', extension: '', role: 'RN', shift: '', isPreceptee: false, isTraveler: false, isChargeNurse: false });
       setEditingId(null);
       setShowAddForm(false);
       await loadStaff();
@@ -67,7 +68,8 @@ export default function StaffManagement() {
       role: staffMember.role || 'RN',
       shift: staffMember.shift || '',
       isPreceptee: staffMember.isPreceptee || false,
-      isTraveler: staffMember.isTraveler || false
+      isTraveler: staffMember.isTraveler || false,
+      isChargeNurse: staffMember.isChargeNurse || false
     });
     setEditingId(staffMember.id);
     setShowAddForm(true);
@@ -221,7 +223,7 @@ export default function StaffManagement() {
               setShowAddForm(!showAddForm);
               setShowImport(false);
               setEditingId(null);
-              setFormData({ lastName: '', firstName: '', phone: '', extension: '', role: 'RN', shift: '', isPreceptee: false, isTraveler: false });
+              setFormData({ lastName: '', firstName: '', phone: '', extension: '', role: 'RN', shift: '', isPreceptee: false, isTraveler: false, isChargeNurse: false });
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
@@ -282,10 +284,10 @@ export default function StaffManagement() {
             Paste staff data below. Supports multiple formats:
           </p>
           <ul className="text-sm text-gray-600 mb-4 list-disc list-inside space-y-1">
-            <li><strong>CSV:</strong> LastName,FirstName,Phone,Extension,Role,Shift,IsPreceptee,IsTraveler</li>
-            <li><strong>Tab-separated:</strong> LastName	FirstName	Phone	Extension	Role	Shift	IsPreceptee	IsTraveler</li>
-            <li><strong>Space-separated:</strong> LastName FirstName Phone Extension Role Shift IsPreceptee IsTraveler</li>
-            <li><strong>Minimal:</strong> LastName,Phone (other fields optional, Shift: Day/Night or blank, IsPreceptee/IsTraveler: true/1/yes or false)</li>
+            <li><strong>CSV:</strong> LastName,FirstName,Phone,Extension,Role,Shift,IsPreceptee,IsTraveler,IsChargeNurse</li>
+            <li><strong>Tab-separated:</strong> LastName	FirstName	Phone	Extension	Role	Shift	IsPreceptee	IsTraveler	IsChargeNurse</li>
+            <li><strong>Space-separated:</strong> LastName FirstName Phone Extension Role Shift IsPreceptee IsTraveler IsChargeNurse</li>
+            <li><strong>Minimal:</strong> LastName,Phone (other fields optional, Shift: Day/Night or blank, boolean fields: true/1/yes or false)</li>
           </ul>
           <textarea
             value={importText}
@@ -416,6 +418,17 @@ Jones,A+B,78278,21126,RN`}
                 <span className="text-sm font-medium">Traveler</span>
               </label>
             </div>
+            <div>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.isChargeNurse}
+                  onChange={(e) => setFormData({ ...formData, isChargeNurse: e.target.checked })}
+                  className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium">Full-Time Charge Nurse</span>
+              </label>
+            </div>
           </div>
           <div className="mt-4">
             <button
@@ -462,6 +475,9 @@ Jones,A+B,78278,21126,RN`}
                 Traveler
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Charge
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -469,7 +485,7 @@ Jones,A+B,78278,21126,RN`}
           <tbody className="bg-white divide-y divide-gray-200">
             {staff.length === 0 ? (
               <tr>
-                <td colSpan="9" className="px-6 py-4 text-center text-gray-500">
+                <td colSpan="10" className="px-6 py-4 text-center text-gray-500">
                   No staff members found. Add your first staff member above.
                 </td>
               </tr>
@@ -525,6 +541,15 @@ Jones,A+B,78278,21126,RN`}
                     {member.isTraveler ? (
                       <span className="px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800">
                         Traveler
+                      </span>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {member.isChargeNurse ? (
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                        Charge
                       </span>
                     ) : (
                       '-'

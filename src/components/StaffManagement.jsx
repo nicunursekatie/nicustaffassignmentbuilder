@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllStaff, addStaff, updateStaff, deleteStaff, clearAllStaff, importStaffFromText } from '../services/staffService';
+import { getAllStaff, addStaff, updateStaff, deleteStaff, clearAllStaff, importStaffFromText, bulkUpdateShift } from '../services/staffService';
 
 export default function StaffManagement() {
   const [staff, setStaff] = useState([]);
@@ -10,6 +10,8 @@ export default function StaffManagement() {
   const [importText, setImportText] = useState('');
   const [importResult, setImportResult] = useState(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState(new Set());
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
   const [formData, setFormData] = useState({
     lastName: '',
     firstName: '',
@@ -120,6 +122,51 @@ export default function StaffManagement() {
     }
   };
 
+  const handleBulkShiftUpdate = async (shift) => {
+    if (selectedStaff.size === 0) {
+      alert('Please select at least one staff member.');
+      return;
+    }
+
+    const count = selectedStaff.size;
+    if (!window.confirm(`Set ${count} selected staff member(s) to ${shift || 'no'} shift?`)) {
+      return;
+    }
+
+    setIsBulkUpdating(true);
+    try {
+      await bulkUpdateShift(Array.from(selectedStaff), shift);
+      setSelectedStaff(new Set());
+      await loadStaff();
+      alert(`Successfully updated ${count} staff member(s) to ${shift || 'no'} shift.`);
+    } catch (error) {
+      console.error('Error bulk updating shift:', error);
+      alert('Failed to update staff shifts.');
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const toggleStaffSelection = (staffId) => {
+    setSelectedStaff(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(staffId)) {
+        newSet.delete(staffId);
+      } else {
+        newSet.add(staffId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedStaff.size === staff.length) {
+      setSelectedStaff(new Set());
+    } else {
+      setSelectedStaff(new Set(staff.map(s => s.id)));
+    }
+  };
+
   const formatStaffName = (staff) => {
     return staff.firstName 
       ? `${staff.lastName}, ${staff.firstName}`
@@ -170,6 +217,51 @@ export default function StaffManagement() {
           </button>
         </div>
       </div>
+
+      {/* Bulk Shift Update Controls */}
+      {staff.length > 0 && (
+        <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="font-bold text-lg mb-1">Bulk Shift Assignment</h3>
+              <p className="text-sm text-gray-600">
+                {selectedStaff.size > 0 
+                  ? `${selectedStaff.size} staff member(s) selected`
+                  : 'Select staff members below to bulk update their shift designation'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleBulkShiftUpdate('Day')}
+                disabled={selectedStaff.size === 0 || isBulkUpdating}
+                className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isBulkUpdating ? 'Updating...' : `Set ${selectedStaff.size || 'Selected'} to Day`}
+              </button>
+              <button
+                onClick={() => handleBulkShiftUpdate('Night')}
+                disabled={selectedStaff.size === 0 || isBulkUpdating}
+                className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isBulkUpdating ? 'Updating...' : `Set ${selectedStaff.size || 'Selected'} to Night`}
+              </button>
+              <button
+                onClick={() => handleBulkShiftUpdate('')}
+                disabled={selectedStaff.size === 0 || isBulkUpdating}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isBulkUpdating ? 'Updating...' : `Clear ${selectedStaff.size || 'Selected'} Shift`}
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={toggleSelectAll}
+            className="text-sm text-purple-600 hover:text-purple-800"
+          >
+            {selectedStaff.size === staff.length ? 'Deselect All' : 'Select All'}
+          </button>
+        </div>
+      )}
 
       {showImport && (
         <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6">
@@ -306,6 +398,14 @@ Jones,A+B,78278,21126,RN`}
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                <input
+                  type="checkbox"
+                  checked={selectedStaff.size === staff.length && staff.length > 0}
+                  onChange={toggleSelectAll}
+                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                />
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Name
               </th>
@@ -329,13 +429,24 @@ Jones,A+B,78278,21126,RN`}
           <tbody className="bg-white divide-y divide-gray-200">
             {staff.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
                   No staff members found. Add your first staff member above.
                 </td>
               </tr>
             ) : (
               staff.map((member) => (
-                <tr key={member.id} className="hover:bg-gray-50">
+                <tr 
+                  key={member.id} 
+                  className={`hover:bg-gray-50 ${selectedStaff.has(member.id) ? 'bg-purple-50' : ''}`}
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedStaff.has(member.id)}
+                      onChange={() => toggleStaffSelection(member.id)}
+                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {formatStaffName(member)}
                   </td>

@@ -98,6 +98,50 @@ export const deleteStaff = async (staffId) => {
 };
 
 /**
+ * Bulk update shift designation for multiple staff members
+ * @param {Array<string>} staffIds - Array of Firestore document IDs
+ * @param {string} shift - Shift designation: 'Day', 'Night', or ''
+ * @returns {Promise<void>}
+ */
+export const bulkUpdateShift = async (staffIds, shift) => {
+  try {
+    if (!staffIds || staffIds.length === 0) {
+      throw new Error('No staff IDs provided');
+    }
+
+    const batch = writeBatch(db);
+    const BATCH_SIZE = 500; // Firestore batch limit
+    let batchCount = 0;
+
+    for (let i = 0; i < staffIds.length; i++) {
+      const staffRef = doc(db, STAFF_COLLECTION, staffIds[i]);
+      batch.update(staffRef, {
+        shift: shift || '',
+        updatedAt: new Date().toISOString()
+      });
+
+      batchCount++;
+
+      // Commit batch if we've reached the limit
+      if (batchCount >= BATCH_SIZE) {
+        await batch.commit();
+        batchCount = 0;
+      }
+    }
+
+    // Commit remaining items
+    if (batchCount > 0) {
+      await batch.commit();
+    }
+
+    console.log(`Successfully updated shift for ${staffIds.length} staff members.`);
+  } catch (error) {
+    console.error('Error bulk updating shift:', error);
+    throw error;
+  }
+};
+
+/**
  * Clear all staff from Firestore
  * @returns {Promise<void>}
  */
